@@ -1,0 +1,93 @@
+Keywords
+    brk (break), const, cont (continue), else, else if, enum, false, func,
+    var, pub (public), priv (private), prot (protected), super, while, from - to (for loop), return,
+    impl (implements), static, self, true, typeof, instanceOf, do, vr (virtual),
+    @over (override), abs (abstract), yield, final, try, catch, finally, throw, throws,
+    ext (extends), class, switch, case, new, delete, def (default case), goto, exp (export), imp (import),
+    iface (interface)
+
+
+//compile time polymorphism
+fx a(i32) {
+    call
+}
+
+fx a(i32, string) {
+    call 
+} 
+
+//runtime time polymorphism
+class A {
+    pub fx a() {
+
+    }
+}
+
+class B ext A {
+    //no def of a() calls parent class a()
+}
+
+class C ext A {
+    //@over has no special implications, just a safety net
+    @over
+    pub fx a() {
+        //trying to implement runtime polymorphism
+        //wont work
+        //to override a parent class method the method in parent class must be defined with a vr (virtual) Keyword
+        //ex: pub vr fx a() {}
+    }
+}
+
+ls = [new A(), new B(), new C()];
+
+from 0 to ls.len {
+    ls[i].a();
+}
+
+Object operators, methods && properties
+    .class => return classname
+    .clone(freeze=false) => return shallow copy of object {may choose to freeze the cloned object}
+    .equal(object) => return true : false
+    = return cloned object
+    == object return true | false
+    .freeze() => prevent further object modification
+    frozen return true | false
+    .toStr() => return stringified object
+
+Operators
+    +    &     +=    &=     &&    ==    !=    (    )
+    -    |     -=    |=     ||    <     <=    [    ]
+    *    ^     *=    ^=     <-    >     >=    {    }
+    /    <<    /=    <<=    ++    =     ?    ,    ;
+    %    >>    %=    >>=    --    !     ...   .    :
+         &^          &^=
+
+Extension
+    .mlc
+
+Make language hybridly typed
+If the data type of a variable is specified while declaring it:
+    The type cannot be changed throughout the program
+If the type is not explicitly mentioned:
+    The variable may type juggle
+
+Implement closures
+
+Implement rust's ownership and borrowing concept to take care of garbage collection by design
+
+Semicolon termination
+
+//named function
+fx functionName(...args) => returnType {
+  //Specifying a return type is optional 
+  //Default return type is null if no return type is explicitly stated
+  //If a type is specified, the function must return a value of that type
+  //Compile time checks for the above, throw runtime exception 
+  //code;
+}
+  
+//anonymous function
+(...args) => returnType {
+  //if the binded object is dropped, remove function from memory
+}
+ 
