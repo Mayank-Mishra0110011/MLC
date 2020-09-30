@@ -1,0 +1,34 @@
+{
+  "name": "mlc-lang",
+  "displayName": "MLC Lang",
+  "description": "Syntax highlighting for mlc lang",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.49.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "mlc",
+        "aliases": [
+          "MLC",
+          "mlc"
+        ],
+        "extensions": [
+          ".mlc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mlc",
+        "scopeName": "source.mlc",
+        "path": "./syntaxes/mlc.tmLanguage.json"
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 CC := gcc
 SRCDIR := src
 BUILDDIR := build
-TARGET := bin/mlc
+TARGET := bin/exe
 SRCEXT := c
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
@@ -18,7 +18,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 
 run: 
 	@echo "Running... " 
-	./bin/mlc
+	./bin/exe
 
 clean:
 	@echo "Cleaning..."; 

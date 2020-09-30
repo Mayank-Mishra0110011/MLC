@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "MLC",
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "entity.name.function",
+          "match": "\\b(fx)\\b"
+        },
+        {
+          "name": "entity.name.class",
+          "match": "\\b(class)\\b"
+        },
+        {
+          "name": "keyword.control.mlc",
+          "match": "\\b(if|while|from|return|to|brk|cont|else|try|catch|goto|imp|exp|switch|case|def|yield|finally|throw|throws|do|elif|async|await)\\b"
+        },
+        {
+          "name": "entity.name.type",
+          "match": "\\b(mixin|struct|union|Object|Exception)\\b"
+        },
+        {
+          "name": "storage.modifier",
+          "match": "\\b(static|final|abs|vr|iface|new|delete|impl|pub|priv|prot|var)\\b"
+        },
+        {
+          "name": "storage.type",
+          "match": "\\b(null|bool|string|char|const|=>|i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize|f32|f64|void|int|double|float|byte|unsafe|super|ext|instanceOf|typeOf|true|false|self|enum|sizeOf)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.mlc",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.mlc",
+          "match": "\\\\."
+        }
+      ]
+    }
+  },
+  "scopeName": "source.mlc"
+}
