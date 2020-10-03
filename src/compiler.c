@@ -32,6 +32,8 @@ void emitReturn(Parser *parser) {
 }
 
 void advance(Parser *parser, Scanner *scanner) {
+  bool flag = false;  //tcode
+  if (parser->cur.type == 34 && parser->prev.type == 7) flag = true;
   parser->prev = parser->cur;
   while (true) {
     parser->cur = scanToken(scanner);
@@ -149,7 +151,7 @@ void parsePrecedence(Parser *parser, Scanner *scanner, Precedence precedence) {
   prefixRule(parser, scanner);
   while (precedence <= getRule(parser->cur.type)->prec) {
     advance(parser, scanner);
-    ParseFn infixRule = getRule(parser->cur.type)->infix;
+    ParseFn infixRule = getRule(parser->prev.type)->infix;
     infixRule(parser, scanner);
   }
 }
@@ -161,8 +163,8 @@ ParseRule rules[] = {
     [TOKEN_RIGHT_BRACE] = {NULL, NULL, PRE_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PRE_NONE},
     [TOKEN_DOT] = {NULL, NULL, PRE_NONE},
-    [TOKEN_MINUS] = {unary, binary, PRE_NONE},
-    [TOKEN_PLUS] = {NULL, binary, PRE_NONE},
+    [TOKEN_MINUS] = {unary, binary, PRE_TERM},
+    [TOKEN_PLUS] = {NULL, binary, PRE_TERM},
     [TOKEN_SEMI] = {NULL, NULL, PRE_NONE},
     [TOKEN_STAR] = {NULL, binary, PRE_FACTOR},
     [TOKEN_SLASH] = {NULL, binary, PRE_FACTOR},

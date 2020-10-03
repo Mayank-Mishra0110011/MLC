@@ -1,0 +1,89 @@
+exp mixin OOPTest {
+  abs class Shape {
+    prot string type;
+    vr fx vrFunc();
+    vr fx getType();
+    fx nonVrFunc() {
+      print('called abstract class non virutal function function');
+    }
+    fx init(string type) {
+      self.type = type;
+    }
+  }
+
+  iface Drawable {
+    vr fx draw();
+    vr fx createCanvas();
+    vr fx clean();
+  }
+
+  iface Computable {
+    vr fx volume();
+    vr fx area();
+  }
+
+  class Circle ext Shape {
+    fx init(f32 r, string type) {
+      super(type);
+      self.r = r;
+    }
+    fx vrFunc() {
+      //Define circle implementaion for vrFunc
+    }
+    fx getType() {
+      return self.type;
+    }
+  }
+
+  class Rect ext Shape impl Drawable, Computable {
+    fx init(f32 w, f32 h, string type) {
+      super(type);
+      self.w = w;
+      self.h = h;
+    }
+    @over
+    fx draw() {
+      //provide implementation
+    }
+    @over
+    fx createCanvas() {
+      //provide implementation
+    }
+    @over
+    fx clean() {
+      //provide implementation
+    }
+    @over
+    fx volume() {
+
+    }
+    @over
+    fx area() {
+
+    }
+    fx getType() {
+      return self.type;
+    }
+  }
+}
+
+/*
+fx main(argv) {
+  Shape shapes[] = {
+    new Circle(22.2, 'circle'),
+    new Rect(12.6, 5.0, 'rect');
+  };
+  from var i = 0 to shapes.length {
+    switch(shapes[i].getType()) {
+      case 'circle':
+        //do something relevant
+        brk;
+      case 'rect':
+        //do something relevant
+        brk;
+      def:
+        //default case
+    }   
+  }
+}
+*/

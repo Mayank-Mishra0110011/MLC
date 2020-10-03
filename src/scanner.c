@@ -9,7 +9,7 @@ void initScanner(Scanner *scanner, const char *source) {
 Token scanToken(Scanner *scanner) {
   ignoreWhiteSpaceAndComments(scanner);
   scanner->start = scanner->current;
-  if (isAtEnd()) return makeToken(scanner, TOKEN_EOF);
+  if (isAtEnd(scanner)) return makeToken(scanner, TOKEN_EOF);
   char c = advanceScanner(scanner);
   if (isAlpha(c)) return identifierToken(scanner);
   if (isDigit(c)) return numberToken(scanner);
@@ -290,11 +290,11 @@ TokenType identifierType(Scanner *scanner) {
 }
 
 Token stringToken(Scanner *scanner) {
-  while (peek(scanner) != '"' && !isAtEnd()) {
+  while (peek(scanner) != '"' && !isAtEnd(scanner)) {
     if (peek(scanner) == '\n') scanner->line++;
     advanceScanner(scanner);
   }
-  if (isAtEnd()) return errorToken(scanner, "Unterminated string.");
+  if (isAtEnd(scanner)) return errorToken(scanner, "Unterminated string.");
   advanceScanner(scanner);
   return makeToken(scanner, TOKEN_STRING);
 }
@@ -327,7 +327,7 @@ void ignoreWhiteSpaceAndComments(Scanner *scanner) {
         break;
       case '/':
         if (peekNext(scanner) == '/') {
-          while (peek(scanner) != '\n' && !isAtEnd()) advanceScanner(scanner);
+          while (peek(scanner) != '\n' && !isAtEnd(scanner)) advanceScanner(scanner);
         } else {
           return;
         }
@@ -339,7 +339,7 @@ void ignoreWhiteSpaceAndComments(Scanner *scanner) {
 }
 
 char peekNext(Scanner *scanner) {
-  if (isAtEnd()) return '\0';
+  if (isAtEnd(scanner)) return '\0';
   return scanner->current[1];
 }
 
@@ -353,13 +353,14 @@ char advanceScanner(Scanner *scanner) {
 }
 
 bool match(Scanner *scanner, char expected) {
-  if (isAtEnd()) return false;
+  if (isAtEnd(scanner)) return false;
   if (*(scanner->current) != expected) return false;
   scanner->current++;
   return true;
 }
 
-bool isAtEnd() {
+bool isAtEnd(Scanner *scanner) {
+  return *(scanner->current) == '\0';
 }
 
 Token makeToken(Scanner *scanner, TokenType type) {

@@ -5,7 +5,8 @@ void initVM(VM* vm) {
 }
 
 void deleteVM(VM* vm) {
-  free(vm);
+  // we might wanna do vm and chunk clean up here
+  // for now we do nothing
 }
 
 void initStack(VM* vm) {
@@ -22,7 +23,11 @@ IR interpret(VM* vm, const char* source) {
   vm->chunk = &chunk;
   vm->instrPtr = vm->chunk->code;
   IR res = run(vm);
+  // vm and chunk cleanup start
   deleteChunk(&chunk);
+  vm->chunk = NULL;
+  vm->instrPtr = NULL;
+  initStack(vm);
   return res;
 }
 

@@ -114,7 +114,7 @@ typedef struct {
 
 void initScanner(Scanner *, const char *);
 Token scanToken(Scanner *);
-static bool isAtEnd();
+static bool isAtEnd(Scanner *);
 static bool isDigit(char);
 static bool isAlpha(char);
 static bool match(Scanner *, char);
