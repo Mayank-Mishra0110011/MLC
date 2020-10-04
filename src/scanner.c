@@ -63,7 +63,7 @@ bool isAlpha(char c) {
 }
 
 Token identifierToken(Scanner *scanner) {
-  while (isAlpha(peek(scanner) || isDigit(peek(scanner)))) advanceScanner(scanner);
+  while (isAlpha(peek(scanner)) || isDigit(peek(scanner))) advanceScanner(scanner);
   return makeToken(scanner, identifierType(scanner));
 }
 
@@ -76,13 +76,12 @@ TokenType checkKeyword(Scanner *scanner, int start, int length, const char *rest
 }
 
 TokenType identifierType(Scanner *scanner) {
-  switch (scanner->current[0]) {
+  switch (scanner->start[0]) {
     case 'a':
       return checkKeyword(scanner, 1, 2, "bs", TOKEN_ABS);
     case 'b':
       return checkKeyword(scanner, 1, 2, "rk", TOKEN_BRK);
     case 'c':
-      //same
       if (scanner->current - scanner->start > 1) {
         switch (scanner->start[1]) {
           case 'l':
@@ -141,7 +140,6 @@ TokenType identifierType(Scanner *scanner) {
       }
       break;
     case 'f':
-      //this one also might not work
       if (scanner->current - scanner->start > 1) {
         switch (scanner->start[1]) {
           case 'a':
@@ -164,7 +162,6 @@ TokenType identifierType(Scanner *scanner) {
     case 'g':
       return checkKeyword(scanner, 1, 3, "oto", TOKEN_GOTO);
     case 'i':
-      // this one might not work correctly
       if (scanner->current - scanner->start > 1) {
         switch (scanner->start[1]) {
           case 'f':
@@ -185,7 +182,7 @@ TokenType identifierType(Scanner *scanner) {
     case 'm':
       return checkKeyword(scanner, 1, 4, "ixin", TOKEN_MIXIN);
     case 'n':
-      if (scanner->current - scanner->start > 1) {
+      if (scanner->current - scanner->start >= 1) {
         switch (scanner->start[1]) {
           case 'e':
             return checkKeyword(scanner, 2, 1, "w", TOKEN_NEW);

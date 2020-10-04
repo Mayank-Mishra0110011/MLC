@@ -22,5 +22,29 @@ void deleteVal(ValArr *arr) {
 }
 
 void printVal(Value val) {
-  printf("%g", val);
+  switch (val.type) {
+    case _BOOLEAN:
+      printf(AS_BOOL(val) ? "true" : "false");
+      break;
+    case _NULL:
+      printf("null");
+      break;
+    case _NUMBER:
+      printf("%g", AS_NUMBER(val));
+      break;
+  }
+}
+
+bool isEqual(Value a, Value b) {
+  if (a.type != b.type) return false;
+  switch (a.type) {
+    case _BOOLEAN:
+      return AS_BOOL(a) == AS_BOOL(b);
+    case _NUMBER:
+      return AS_NUMBER(a) == AS_NUMBER(b);
+    case _NULL:
+      return true;
+    default:
+      return false;
+  }
 }

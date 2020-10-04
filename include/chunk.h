@@ -10,10 +10,20 @@ typedef enum {
   OP_CONST,
   OP_ADD,
   OP_SUBTRACT,
+  OP_NOT,
   OP_MULTIPLY,
   OP_DIVIDE,
   OP_NEGATE,
-  OP_RETURN
+  OP_RETURN,
+  OP_NULL,
+  OP_TRUE,
+  OP_FALSE,
+  OP_EQUAL,
+  OP_NOT_EQUAL,
+  OP_GREATER,
+  OP_GREATER_EQUAL,
+  OP_LESS,
+  OP_LESS_EQUAL,
 } OpCode;
 
 typedef struct {

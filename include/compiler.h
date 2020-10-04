@@ -63,5 +63,6 @@ static void unary(Parser *, Scanner *);
 static void parsePrecedence(Parser *, Scanner *, Precedence);
 static void binary(Parser *, Scanner *);
 static ParseRule *getRule(TokenType);
+static void literal(Parser *, Scanner *);
 
 #endif

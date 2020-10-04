@@ -1,6 +1,7 @@
 #ifndef MLC_VM_H
 #define MLC_VM_H
 
+#include <stdarg.h>
 #include <stdio.h>
 
 #include "chunk.h"
@@ -29,6 +30,9 @@ IR interpret(VM *, const char *source);
 void push(VM *, Value);
 Value pop(VM *);
 static IR run(VM *);
+static Value vmStackPeek(VM *, int);
 static void initStack(VM *);
+static void runtimeError(VM *, const char *, ...);
+static bool isFalse(Value);
 
 #endif

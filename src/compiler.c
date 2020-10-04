@@ -32,8 +32,6 @@ void emitReturn(Parser *parser) {
 }
 
 void advance(Parser *parser, Scanner *scanner) {
-  bool flag = false;  //tcode
-  if (parser->cur.type == 34 && parser->prev.type == 7) flag = true;
   parser->prev = parser->cur;
   while (true) {
     parser->cur = scanToken(scanner);
@@ -89,16 +87,18 @@ Chunk *currentChunk() {
 
 void number(Parser *parser, Scanner *scanner) {
   double value = strtod(parser->prev.start, NULL);
-  emitConst(parser, value);
+  emitConst(parser, TO_NUMBER(value));
 }
 
 void unary(Parser *parser, Scanner *scanner) {
+  TokenType operatorType = parser->prev.type;
   parsePrecedence(parser, scanner, PRE_UNARY);
-  TokenType operator= parser->prev.type;
-  expression(parser, scanner);
-  switch (operator) {
+  switch (operatorType) {
     case TOKEN_MINUS:
       emitByte(OP_NEGATE, parser);
+      break;
+    case TOKEN_BANG:
+      emitByte(OP_NOT, parser);
       break;
   }
 }
@@ -119,6 +119,38 @@ void binary(Parser *parser, Scanner *scanner) {
       break;
     case TOKEN_SLASH:
       emitByte(OP_DIVIDE, parser);
+      break;
+    case TOKEN_BANG_EQUAL:
+      emitBytes(OP_EQUAL, OP_NOT, parser);
+      break;
+    case TOKEN_EQUAL_EQUAL:
+      emitByte(OP_EQUAL, parser);
+      break;
+    case TOKEN_GREATER:
+      emitByte(OP_GREATER, parser);
+      break;
+    case TOKEN_GREATER_EQUAL:
+      emitBytes(OP_GREATER, OP_EQUAL, parser);
+      break;
+    case TOKEN_LESS:
+      emitByte(OP_LESS, parser);
+      break;
+    case TOKEN_LESS_EQUAL:
+      emitBytes(OP_LESS, OP_EQUAL, parser);
+      break;
+  }
+}
+
+void literal(Parser *parser, Scanner *scanner) {
+  switch (parser->prev.type) {
+    case TOKEN_FALSE:
+      emitByte(OP_FALSE, parser);
+      break;
+    case TOKEN_TRUE:
+      emitByte(OP_TRUE, parser);
+      break;
+    case TOKEN_NULL:
+      emitByte(OP_NULL, parser);
       break;
   }
 }
@@ -145,6 +177,7 @@ void parsePrecedence(Parser *parser, Scanner *scanner, Precedence precedence) {
   advance(parser, scanner);
   ParseFn prefixRule = getRule(parser->prev.type)->prefix;
   if (prefixRule == NULL) {
+    printf("prev.type: %d\n", parser->prev.type);
     error(parser, "Expected expression");
     return;
   }
@@ -168,14 +201,14 @@ ParseRule rules[] = {
     [TOKEN_SEMI] = {NULL, NULL, PRE_NONE},
     [TOKEN_STAR] = {NULL, binary, PRE_FACTOR},
     [TOKEN_SLASH] = {NULL, binary, PRE_FACTOR},
-    [TOKEN_BANG] = {NULL, NULL, PRE_NONE},
-    [TOKEN_BANG_EQUAL] = {NULL, NULL, PRE_NONE},
+    [TOKEN_BANG] = {unary, NULL, PRE_NONE},
+    [TOKEN_BANG_EQUAL] = {NULL, binary, PRE_EQUALITY},
     [TOKEN_EQUAL] = {NULL, NULL, PRE_NONE},
-    [TOKEN_EQUAL_EQUAL] = {NULL, NULL, PRE_NONE},
-    [TOKEN_GREATER] = {NULL, NULL, PRE_NONE},
-    [TOKEN_GREATER_EQUAL] = {NULL, NULL, PRE_NONE},
-    [TOKEN_LESS] = {NULL, NULL, PRE_NONE},
-    [TOKEN_LESS_EQUAL] = {NULL, NULL, PRE_NONE},
+    [TOKEN_EQUAL_EQUAL] = {NULL, binary, PRE_EQUALITY},
+    [TOKEN_GREATER] = {NULL, binary, PRE_COMP},
+    [TOKEN_GREATER_EQUAL] = {NULL, binary, PRE_COMP},
+    [TOKEN_LESS] = {NULL, binary, PRE_COMP},
+    [TOKEN_LESS_EQUAL] = {NULL, binary, PRE_COMP},
     [TOKEN_LOGICAL_AND] = {NULL, NULL, PRE_NONE},
     [TOKEN_LOGICAL_OR] = {NULL, NULL, PRE_NONE},
     [TOKEN_IDENTIFIER] = {NULL, NULL, PRE_NONE},
@@ -185,14 +218,14 @@ ParseRule rules[] = {
     [TOKEN_CONST] = {NULL, NULL, PRE_NONE},
     [TOKEN_ENUM] = {NULL, NULL, PRE_NONE},
     [TOKEN_VAR] = {NULL, NULL, PRE_NONE},
-    [TOKEN_NULL] = {NULL, NULL, PRE_NONE},
+    [TOKEN_NULL] = {literal, NULL, PRE_NONE},
     [TOKEN_CLASS] = {NULL, NULL, PRE_NONE},
     [TOKEN_SUPER] = {NULL, NULL, PRE_NONE},
     [TOKEN_SELF] = {NULL, NULL, PRE_NONE},
     [TOKEN_FX] = {NULL, NULL, PRE_NONE},
     [TOKEN_PRINT] = {NULL, NULL, PRE_NONE},
-    [TOKEN_TRUE] = {NULL, NULL, PRE_NONE},
-    [TOKEN_FALSE] = {NULL, NULL, PRE_NONE},
+    [TOKEN_TRUE] = {literal, NULL, PRE_NONE},
+    [TOKEN_FALSE] = {literal, NULL, PRE_NONE},
     [TOKEN_FROM] = {NULL, NULL, PRE_NONE},
     [TOKEN_TO] = {NULL, NULL, PRE_NONE},
     [TOKEN_WHILE] = {NULL, NULL, PRE_NONE},

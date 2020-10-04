@@ -34,11 +34,15 @@ IR interpret(VM* vm, const char* source) {
 IR run(VM* vm) {
 #define READ_BYTE() (*(vm->instrPtr)++)
 #define READ_CONST() (vm->chunk->constants.values[READ_BYTE()])
-#define BINARY_OP(op)   \
-  do {                  \
-    double b = pop(vm); \
-    double a = pop(vm); \
-    push(vm, a op b);   \
+#define BINARY_OP(valType, op)                                              \
+  do {                                                                      \
+    if (!IS_NUMBER(vmStackPeek(vm, 0)) || !IS_NUMBER(vmStackPeek(vm, 0))) { \
+      runtimeError(vm, "Operand must be a \"Number\" type");                \
+      return I_RUNTIME_ERR;                                                 \
+    }                                                                       \
+    double b = AS_NUMBER(pop(vm));                                          \
+    double a = AS_NUMBER(pop(vm));                                          \
+    push(vm, valType(a op b));                                              \
   } while (false)
 
   while (true) {
@@ -53,26 +57,64 @@ IR run(VM* vm) {
     disassembleInstruction(vm->chunk, (int)(vm->instrPtr - vm->chunk->code));
 #endif
     uint8_t instr;
-    Value constant;
+    Value constant, a, b;
     switch (instr = READ_BYTE()) {
+      case OP_EQUAL:
+        a = pop(vm);
+        b = pop(vm);
+        push(vm, TO_BOOL(isEqual(a, b)));
+        break;
+      case OP_NOT_EQUAL:
+        a = pop(vm);
+        b = pop(vm);
+        push(vm, TO_BOOL(!isEqual(a, b)));
+        break;
+      case OP_GREATER:
+        BINARY_OP(TO_BOOL, >);
+        break;
+      case OP_LESS:
+        BINARY_OP(TO_BOOL, <);
+        break;
+      case OP_GREATER_EQUAL:
+        BINARY_OP(TO_BOOL, >=);
+        break;
+      case OP_LESS_EQUAL:
+        BINARY_OP(TO_BOOL, <=);
+        break;
+      case OP_NOT:
+        push(vm, TO_BOOL(isFalse(pop(vm))));
+        break;
+      case OP_NULL:
+        push(vm, TO_NULL);
+        break;
+      case OP_TRUE:
+        push(vm, TO_BOOL(true));
+        break;
+      case OP_FALSE:
+        push(vm, TO_BOOL(false));
+        break;
       case OP_CONST:
         constant = READ_CONST();
         push(vm, constant);
         break;
       case OP_ADD:
-        BINARY_OP(+);
+        BINARY_OP(TO_NUMBER, +);
         break;
       case OP_SUBTRACT:
-        BINARY_OP(-);
+        BINARY_OP(TO_NUMBER, -);
         break;
       case OP_MULTIPLY:
-        BINARY_OP(*);
+        BINARY_OP(TO_NUMBER, *);
         break;
       case OP_DIVIDE:
-        BINARY_OP(/);
+        BINARY_OP(TO_NUMBER, /);
         break;
       case OP_NEGATE:
-        push(vm, -pop(vm));
+        if (!IS_NUMBER(vmStackPeek(vm, 0))) {
+          runtimeError(vm, "Operand must be a \"Number\" type");
+          return I_RUNTIME_ERR;
+        }
+        push(vm, TO_NUMBER(-AS_NUMBER(pop(vm))));
         break;
       case OP_RETURN:
         printVal(pop(vm));
@@ -93,4 +135,24 @@ void push(VM* vm, Value value) {
 Value pop(VM* vm) {
   vm->stackTop--;
   return *(vm->stackTop);
+}
+
+Value vmStackPeek(VM* vm, int far) {
+  return vm->stackTop[-1 - far];
+}
+
+void runtimeError(VM* vm, const char* format, ...) {
+  size_t instr = vm->instrPtr - vm->chunk->code - 1;
+  int line = vm->chunk->lines[instr];
+  fprintf(stderr, "\n\x1b[31;1mError at [line %d] in script:\n\x1b[32;1m  => ", line);
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
+  fputs("\n\n\x1b[0m", stderr);
+  // resetStack();
+}
+
+bool isFalse(Value val) {
+  return IS_NULL(val) || (IS_BOOL(val) && !AS_BOOL(val));
 }
