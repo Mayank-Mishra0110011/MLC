@@ -1,6 +1,8 @@
 #ifndef MLC_DEBUG_H
 #define MLC_DEBUG_H
 
+#include <stdio.h>
+
 #include "chunk.h"
 #include "value.h"
 

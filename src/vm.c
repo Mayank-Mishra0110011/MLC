@@ -2,11 +2,27 @@
 
 void initVM(VM* vm) {
   initStack(vm);
+  vm->objects = NULL;
 }
 
 void deleteVM(VM* vm) {
-  // we might wanna do vm and chunk clean up here
-  // for now we do nothing
+  Object* obj = vm->objects;
+  while (obj != NULL) {
+    Object* next = obj->next;
+    freeObject(obj);
+    obj = next;
+  }
+}
+
+void freeObject(Object* obj) {
+  switch (obj->type) {
+    case STRING_OBJECT: {
+      StringObject* string = (StringObject*)obj;
+      DELETE_ARRAY(char, string->str, string->length + 1);
+      FREE(StringObject, obj);
+      break;
+    }
+  }
 }
 
 void initStack(VM* vm) {
@@ -98,7 +114,15 @@ IR run(VM* vm) {
         push(vm, constant);
         break;
       case OP_ADD:
-        BINARY_OP(TO_NUMBER, +);
+        if (IS_STRING(vmStackPeek(vm, 0)) && IS_STRING(vmStackPeek(vm, 1))) {
+          concatString(vm);
+        } else if (IS_NUMBER(vmStackPeek(vm, 0)) && IS_NUMBER(vmStackPeek(vm, 1))) {
+          double b = AS_NUMBER(pop(vm));
+          double a = AS_NUMBER(pop(vm));
+          push(vm, TO_NUMBER(a + b));
+        } else {
+          runtimeError(vm, "Invalid Operation! Operand must be \"Number\" or \"String\" type");
+        }
         break;
       case OP_SUBTRACT:
         BINARY_OP(TO_NUMBER, -);
@@ -127,6 +151,20 @@ IR run(VM* vm) {
 #undef BINARY_OP
 }
 
+void concatString(VM* vm) {
+  StringObject* b = AS_STRING(pop(vm));
+  StringObject* a = AS_STRING(pop(vm));
+  int length = a->length + b->length;
+  char* str = ALLOCATE(char, length + 1);
+  memcpy(str, a->str, a->length);
+  memcpy(str + a->length, b->str, b->length);
+  str[length] = '\0';
+  StringObject* concatedStr = getAllocatedString(str, length);
+  concatedStr->obj.next = vm->objects;
+  vm->objects = &(concatedStr->obj);
+  push(vm, TO_OBJECT(concatedStr));
+}
+
 void push(VM* vm, Value value) {
   *(vm->stackTop) = value;
   vm->stackTop++;
@@ -150,7 +188,7 @@ void runtimeError(VM* vm, const char* format, ...) {
   vfprintf(stderr, format, args);
   va_end(args);
   fputs("\n\n\x1b[0m", stderr);
-  // resetStack();
+  initStack(vm);
 }
 
 bool isFalse(Value val) {

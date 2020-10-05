@@ -114,20 +114,21 @@ typedef struct {
 
 void initScanner(Scanner *, const char *);
 Token scanToken(Scanner *);
-static bool isAtEnd(Scanner *);
-static bool isDigit(char);
+
 static bool isAlpha(char);
+static Token identifierToken(Scanner *);
+static TokenType checkKeyword(Scanner *, int, int, const char *, TokenType);
+static TokenType identifierType(Scanner *);
+static Token stringToken(Scanner *);
+static bool isDigit(char c);
+static Token numberToken(Scanner *);
+static void ignoreWhiteSpaceAndComments(Scanner *);
+static char peekNext(Scanner *);
+static char peek(Scanner *);
+static char advanceScanner(Scanner *);
 static bool match(Scanner *, char);
+static bool isAtEnd(Scanner *);
 static Token makeToken(Scanner *, TokenType);
 static Token errorToken(Scanner *, const char *);
-static Token stringToken(Scanner *);
-static Token numberToken(Scanner *);
-static Token identifierToken(Scanner *);
-static TokenType identifierType(Scanner *);
-static TokenType checkKeyword(Scanner *, int, int, const char *, TokenType);
-static void ignoreWhiteSpaceAndComments(Scanner *);
-static char advanceScanner(Scanner *);
-static char peek(Scanner *);
-static char peekNext(Scanner *);
 
 #endif

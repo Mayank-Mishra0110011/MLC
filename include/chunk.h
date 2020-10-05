@@ -2,8 +2,10 @@
 #define MLC_CHUNK_H
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "common.h"
+#include "memory.h"
 #include "value.h"
 
 typedef enum {

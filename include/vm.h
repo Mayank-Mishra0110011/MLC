@@ -3,10 +3,13 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "chunk.h"
+#include "common.h"
 #include "compiler.h"
 #include "debug.h"
+#include "object.h"
 #include "value.h"
 
 #define STACK_MAX 256
@@ -16,6 +19,7 @@ typedef struct {
   uint8_t *instrPtr;
   Value stack[STACK_MAX];
   Value *stackTop;
+  Object *objects;
 } VM;
 
 typedef enum {
@@ -29,10 +33,13 @@ void deleteVM(VM *);
 IR interpret(VM *, const char *source);
 void push(VM *, Value);
 Value pop(VM *);
-static IR run(VM *);
-static Value vmStackPeek(VM *, int);
+
 static void initStack(VM *);
+static IR run(VM *);
+static void concatString(VM *);
+static Value vmStackPeek(VM *, int);
 static void runtimeError(VM *, const char *, ...);
 static bool isFalse(Value);
+static void freeObject(Object *);
 
 #endif

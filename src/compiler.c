@@ -189,6 +189,10 @@ void parsePrecedence(Parser *parser, Scanner *scanner, Precedence precedence) {
   }
 }
 
+void string(Parser *parser, Scanner *scanner) {
+  emitConst(parser, TO_OBJECT(copyString(parser->prev.start + 1, parser->prev.length - 2)));
+}
+
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, NULL, PRE_NONE},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PRE_NONE},
@@ -212,7 +216,7 @@ ParseRule rules[] = {
     [TOKEN_LOGICAL_AND] = {NULL, NULL, PRE_NONE},
     [TOKEN_LOGICAL_OR] = {NULL, NULL, PRE_NONE},
     [TOKEN_IDENTIFIER] = {NULL, NULL, PRE_NONE},
-    [TOKEN_STRING] = {NULL, NULL, PRE_NONE},
+    [TOKEN_STRING] = {string, NULL, PRE_NONE},
     [TOKEN_NUMBER] = {number, NULL, PRE_NONE},
 
     [TOKEN_CONST] = {NULL, NULL, PRE_NONE},

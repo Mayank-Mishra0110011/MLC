@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 #include "common.h"
+#include "object.h"
 #include "scanner.h"
-#include "vm.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -44,25 +44,26 @@ typedef struct {
 static Chunk *compilingChunk;
 
 bool compile(const char *, Chunk *);
-static void advance(Parser *, Scanner *);
-static void consume(Parser *, Scanner *, TokenType, const char *);
+static ParseRule *getRule(TokenType);
+static void string(Parser *, Scanner *);
+static void parsePrecedence(Parser *, Scanner *, Precedence);
+static void grouping(Parser *, Scanner *);
+static uint8_t makeConst(Value);
+static void emitConst(Parser *, Value);
+static void literal(Parser *, Scanner *);
+static void binary(Parser *, Scanner *);
+static void unary(Parser *, Scanner *);
+static void number(Parser *, Scanner *);
 static Chunk *currentChunk();
-static void emitByte(uint8_t, Parser *);
 static void emitBytes(uint8_t, uint8_t, Parser *);
-static void errorAtCurrent(Parser *, const char *);
-static void errorAt(Parser *, const char *);
+static void emitByte(uint8_t, Parser *);
+static void consume(Parser *, Scanner *, TokenType, const char *);
 static void error(Parser *, const char *);
+static void errorAt(Parser *, const char *);
+static void errorAtCurrent(Parser *, const char *);
+static void advance(Parser *, Scanner *);
+static void emitReturn(Parser *);
 static void endCompilation(Parser *);
 static void expression(Parser *, Scanner *);
-static void emitReturn(Parser *);
-static void number(Parser *, Scanner *);
-static void emitConst(Parser *, Value);
-static uint8_t makeConst(Value);
-static void grouping(Parser *, Scanner *);
-static void unary(Parser *, Scanner *);
-static void parsePrecedence(Parser *, Scanner *, Precedence);
-static void binary(Parser *, Scanner *);
-static ParseRule *getRule(TokenType);
-static void literal(Parser *, Scanner *);
 
 #endif
