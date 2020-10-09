@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "common.h"
 #include "memory.h"
 
 typedef enum {
@@ -22,6 +21,7 @@ struct ObjectStructString {
   Object obj;
   int length;
   char *str;
+  uint32_t hash;
 };
 
 typedef struct ObjectStructString StringObject;
@@ -33,9 +33,8 @@ typedef struct ObjectStructString StringObject;
 
 #define ALLOCATE_OBJECT(type, objectType) (type *)allocateObject(sizeof(type), objectType)
 
-StringObject *copyString(const char *, int);
-StringObject *getAllocatedString(char *, int);
-static Object *allocateObject(size_t, ObjectType);
-static StringObject *allocateString(char *, int);
+Object *allocateObject(size_t, ObjectType);
+StringObject *allocateString(char *, int, uint32_t);
+uint32_t hashString(const char *, int);
 
 #endif

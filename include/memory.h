@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 #include "common.h"
-#include "object.h"
 
 #define GROW_CAPACITY(cap) ((cap) < 8 ? 8 : (cap)*2)
 #define GROW_ARRAY(prev, type, curCount, count) (type *)reallocate(prev, sizeof(type) * (curCount), sizeof(type) * (count))

@@ -3,9 +3,11 @@
 void initVM(VM* vm) {
   initStack(vm);
   vm->objects = NULL;
+  hashTableInit(&vm->strings);
 }
 
 void deleteVM(VM* vm) {
+  hashTableDelete(&vm->strings);
   Object* obj = vm->objects;
   while (obj != NULL) {
     Object* next = obj->next;
@@ -32,14 +34,14 @@ void initStack(VM* vm) {
 IR interpret(VM* vm, const char* source) {
   Chunk chunk;
   initChunk(&chunk);
-  if (!compile(source, &chunk)) {
+  if (!compile(source, &chunk, &vm->strings)) {
     deleteChunk(&chunk);
     return I_COMPILE_ERR;
   }
   vm->chunk = &chunk;
   vm->instrPtr = vm->chunk->code;
   IR res = run(vm);
-  // vm and chunk cleanup start
+  // vm and chunk cleanup
   deleteChunk(&chunk);
   vm->chunk = NULL;
   vm->instrPtr = NULL;
@@ -63,13 +65,16 @@ IR run(VM* vm) {
 
   while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
-    printf("STACK : ");
+    printf("\nSTACK after evaluating last instruction :");
+    if (vm->stack >= vm->stackTop) {
+      printf(" []");
+    }
     for (Value* val = vm->stack; val < vm->stackTop; val++) {
-      printf("[");
+      printf(" [");
       printVal(*val);
       printf("]");
     }
-    printf("\n");
+    printf("\n\n");
     disassembleInstruction(vm->chunk, (int)(vm->instrPtr - vm->chunk->code));
 #endif
     uint8_t instr;
@@ -124,6 +129,11 @@ IR run(VM* vm) {
           runtimeError(vm, "Invalid Operation! Operand must be \"Number\" or \"String\" type");
         }
         break;
+      case OP_MODULO: {
+        double b = AS_NUMBER(pop(vm));
+        double a = AS_NUMBER(pop(vm));
+        push(vm, TO_NUMBER(fmod(a, b)));
+      } break;
       case OP_SUBTRACT:
         BINARY_OP(TO_NUMBER, -);
         break;
@@ -159,9 +169,10 @@ void concatString(VM* vm) {
   memcpy(str, a->str, a->length);
   memcpy(str + a->length, b->str, b->length);
   str[length] = '\0';
-  StringObject* concatedStr = getAllocatedString(str, length);
+  StringObject* concatedStr = getAllocatedString(str, length, &vm->strings);
   concatedStr->obj.next = vm->objects;
   vm->objects = &(concatedStr->obj);
+  hashTableInsertValue(&vm->strings, concatedStr, TO_NULL);
   push(vm, TO_OBJECT(concatedStr));
 }
 

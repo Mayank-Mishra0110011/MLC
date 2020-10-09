@@ -1,6 +1,6 @@
 #include "compiler.h"
 
-bool compile(const char *source, Chunk *chunk) {
+bool compile(const char *source, Chunk *chunk, HashTable *hash) {
   Scanner scanner;
   Parser parser;
   initScanner(&scanner, source);
@@ -8,14 +8,14 @@ bool compile(const char *source, Chunk *chunk) {
   parser.hadErr = false;
   parser.panic = false;
   advance(&parser, &scanner);
-  expression(&parser, &scanner);
+  expression(&parser, &scanner, hash);
   consume(&parser, &scanner, TOKEN_EOF, "Expect end of expression");
   endCompilation(&parser);
   return !parser.hadErr;
 }
 
-void expression(Parser *parser, Scanner *scanner) {
-  parsePrecedence(parser, scanner, PRE_ASSIGN);
+void expression(Parser *parser, Scanner *scanner, HashTable *hash) {
+  parsePrecedence(parser, scanner, hash, PRE_ASSIGN);
 }
 
 void endCompilation(Parser *parser) {
@@ -85,14 +85,14 @@ Chunk *currentChunk() {
   return compilingChunk;
 }
 
-void number(Parser *parser, Scanner *scanner) {
+void number(Parser *parser, Scanner *scanner, HashTable *hash) {
   double value = strtod(parser->prev.start, NULL);
   emitConst(parser, TO_NUMBER(value));
 }
 
-void unary(Parser *parser, Scanner *scanner) {
+void unary(Parser *parser, Scanner *scanner, HashTable *hash) {
   TokenType operatorType = parser->prev.type;
-  parsePrecedence(parser, scanner, PRE_UNARY);
+  parsePrecedence(parser, scanner, hash, PRE_UNARY);
   switch (operatorType) {
     case TOKEN_MINUS:
       emitByte(OP_NEGATE, parser);
@@ -103,13 +103,16 @@ void unary(Parser *parser, Scanner *scanner) {
   }
 }
 
-void binary(Parser *parser, Scanner *scanner) {
+void binary(Parser *parser, Scanner *scanner, HashTable *hash) {
   TokenType operator= parser->prev.type;
   ParseRule *rule = getRule(operator);
-  parsePrecedence(parser, scanner, (Precedence)(rule->prec + 1));
+  parsePrecedence(parser, scanner, hash, (Precedence)(rule->prec + 1));
   switch (operator) {
     case TOKEN_PLUS:
       emitByte(OP_ADD, parser);
+      break;
+    case TOKEN_MODULO:
+      emitByte(OP_MODULO, parser);
       break;
     case TOKEN_MINUS:
       emitByte(OP_SUBTRACT, parser);
@@ -141,7 +144,7 @@ void binary(Parser *parser, Scanner *scanner) {
   }
 }
 
-void literal(Parser *parser, Scanner *scanner) {
+void literal(Parser *parser, Scanner *scanner, HashTable *hash) {
   switch (parser->prev.type) {
     case TOKEN_FALSE:
       emitByte(OP_FALSE, parser);
@@ -168,12 +171,12 @@ uint8_t makeConst(Value value) {
   return (uint8_t)constant;
 }
 
-void grouping(Parser *parser, Scanner *scanner) {
-  expression(parser, scanner);
+void grouping(Parser *parser, Scanner *scanner, HashTable *hash) {
+  expression(parser, scanner, hash);
   consume(parser, scanner, TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
 }
 
-void parsePrecedence(Parser *parser, Scanner *scanner, Precedence precedence) {
+void parsePrecedence(Parser *parser, Scanner *scanner, HashTable *hash, Precedence precedence) {
   advance(parser, scanner);
   ParseFn prefixRule = getRule(parser->prev.type)->prefix;
   if (prefixRule == NULL) {
@@ -181,16 +184,16 @@ void parsePrecedence(Parser *parser, Scanner *scanner, Precedence precedence) {
     error(parser, "Expected expression");
     return;
   }
-  prefixRule(parser, scanner);
+  prefixRule(parser, scanner, hash);
   while (precedence <= getRule(parser->cur.type)->prec) {
     advance(parser, scanner);
     ParseFn infixRule = getRule(parser->prev.type)->infix;
-    infixRule(parser, scanner);
+    infixRule(parser, scanner, hash);
   }
 }
 
-void string(Parser *parser, Scanner *scanner) {
-  emitConst(parser, TO_OBJECT(copyString(parser->prev.start + 1, parser->prev.length - 2)));
+void string(Parser *parser, Scanner *scanner, HashTable *hash) {
+  emitConst(parser, TO_OBJECT(copyString(parser->prev.start + 1, parser->prev.length - 2, hash)));
 }
 
 ParseRule rules[] = {
@@ -202,6 +205,7 @@ ParseRule rules[] = {
     [TOKEN_DOT] = {NULL, NULL, PRE_NONE},
     [TOKEN_MINUS] = {unary, binary, PRE_TERM},
     [TOKEN_PLUS] = {NULL, binary, PRE_TERM},
+    [TOKEN_MODULO] = {NULL, binary, PRE_TERM},
     [TOKEN_SEMI] = {NULL, NULL, PRE_NONE},
     [TOKEN_STAR] = {NULL, binary, PRE_FACTOR},
     [TOKEN_SLASH] = {NULL, binary, PRE_FACTOR},

@@ -30,6 +30,8 @@ Token scanToken(Scanner *scanner) {
       return makeToken(scanner, TOKEN_DOT);
     case '+':
       return makeToken(scanner, TOKEN_PLUS);
+    case '%':
+      return makeToken(scanner, TOKEN_MODULO);
     case '-':
       return makeToken(scanner, TOKEN_MINUS);
     case '*':
@@ -233,7 +235,6 @@ TokenType identifierType(Scanner *scanner) {
       }
       break;
     case 't':
-      //this one might not either
       if (scanner->current - scanner->start > 1) {
         switch (scanner->start[1]) {
           case 'h':

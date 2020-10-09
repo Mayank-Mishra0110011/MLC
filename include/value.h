@@ -1,11 +1,6 @@
 #ifndef MLC_VAL_H
 #define MLC_VAL_H
 
-#include <stdio.h>
-#include <string.h>
-
-#include "common.h"
-#include "memory.h"
 #include "object.h"
 
 typedef enum {

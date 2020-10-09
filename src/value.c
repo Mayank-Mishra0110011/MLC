@@ -48,9 +48,7 @@ bool isEqual(Value a, Value b) {
     case _NULL:
       return true;
     case _OBJECT: {
-      StringObject *str1 = AS_STRING(a);
-      StringObject *str2 = AS_STRING(b);
-      return str1->length == str2->length && memcmp(str1->str, str2->str, str1->length) == 0;
+      return AS_OBJECT(a) == AS_OBJECT(b);
     }
     default:
       return false;

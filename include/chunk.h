@@ -1,16 +1,12 @@
 #ifndef MLC_CHUNK_H
 #define MLC_CHUNK_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "common.h"
-#include "memory.h"
 #include "value.h"
 
 typedef enum {
   OP_CONST,
   OP_ADD,
+  OP_MODULO,
   OP_SUBTRACT,
   OP_NOT,
   OP_MULTIPLY,

@@ -1,16 +1,13 @@
 #ifndef MLC_VM_H
 #define MLC_VM_H
 
+#include <math.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "chunk.h"
-#include "common.h"
 #include "compiler.h"
 #include "debug.h"
-#include "object.h"
-#include "value.h"
+#include "hashtable.h"
 
 #define STACK_MAX 256
 
@@ -20,6 +17,7 @@ typedef struct {
   Value stack[STACK_MAX];
   Value *stackTop;
   Object *objects;
+  HashTable strings;
 } VM;
 
 typedef enum {

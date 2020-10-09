@@ -1,4 +1,4 @@
-CC := gcc
+CC := gcc -lm
 SRCDIR := src
 BUILDDIR := build
 TARGET := bin/mlc
