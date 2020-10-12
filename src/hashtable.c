@@ -49,7 +49,7 @@ void increaseCapacity(HashTable *hash, int capacity) {
     entries[i].value = TO_NULL;
   }
   hash->count = 0;
-  for (int i = 0; i < capacity; i++) {
+  for (int i = 0; i < hash->capacity; i++) {
     Entry *entry = &hash->entries[i];
     if (entry->key == NULL) continue;
     Entry *dest = findEntry(entries, capacity, entry->key);
@@ -109,15 +109,24 @@ StringObject *copyString(const char *str, int length, HashTable *vmStrings) {
   char *allocStr = ALLOCATE(char, length + 1);
   memcpy(allocStr, str, length);
   allocStr[length] = '\0';
-  return allocateString(allocStr, length, hash);
+  return allocateString(allocStr, length, hash, vmStrings);
 }
 
 StringObject *getAllocatedString(char *str, int length, HashTable *vmStrings) {
   uint32_t hash = hashString(str, length);
-  StringObject *interned = hashTableFindString(vmStrings, str, length, hash);
+  StringObject *allocStringObj, *interned = hashTableFindString(vmStrings, str, length, hash);
   if (interned != NULL) {
     DELETE_ARRAY(char, str, length + 1);
     return interned;
   }
-  return allocateString(str, length, hash);
+  return allocateString(str, length, hash, vmStrings);
+}
+
+StringObject *allocateString(char *str, int length, uint32_t hash, HashTable *vmStrings) {
+  StringObject *stringObject = ALLOCATE_OBJECT(StringObject, STRING_OBJECT);
+  stringObject->length = length;
+  stringObject->str = str;
+  stringObject->hash = hash;
+  hashTableInsertValue(vmStrings, stringObject, TO_NULL);
+  return stringObject;
 }

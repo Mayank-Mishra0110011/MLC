@@ -21,6 +21,7 @@ void hashTableDelete(HashTable *);
 void hashTableCopy(HashTable *, HashTable *);
 StringObject *hashTableFindString(HashTable *, const char *, int, uint32_t);
 StringObject *copyString(const char *, int, HashTable *);
+StringObject *allocateString(char *, int, uint32_t, HashTable *);
 StringObject *getAllocatedString(char *, int, HashTable *);
 bool hashTableGetValue(HashTable *, StringObject *, Value *);
 bool hashTableInsertValue(HashTable *, StringObject *, Value);

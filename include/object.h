@@ -34,7 +34,6 @@ typedef struct ObjectStructString StringObject;
 #define ALLOCATE_OBJECT(type, objectType) (type *)allocateObject(sizeof(type), objectType)
 
 Object *allocateObject(size_t, ObjectType);
-StringObject *allocateString(char *, int, uint32_t);
 uint32_t hashString(const char *, int);
 
 #endif

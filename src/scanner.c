@@ -206,6 +206,9 @@ TokenType identifierType(Scanner *scanner) {
           case 'r':
             switch (scanner->start[2]) {
               case 'i':
+                if (scanner->start[3] == 'n') {
+                  return checkKeyword(scanner, 4, 1, "t", TOKEN_PRINT);
+                }
                 return checkKeyword(scanner, 3, 1, "v", TOKEN_PRIV);
               case 'o':
                 return checkKeyword(scanner, 3, 1, "t", TOKEN_PROT);

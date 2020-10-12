@@ -1,6 +1,5 @@
-#include "vm.h"
+#include "repl.h"
 
-static void MLC_repl(VM *vm);
 static void MLC_compile(VM *vm, const char *filePath);
 static char *readFile(const char *filePath);
 
@@ -8,7 +7,7 @@ int main(int argc, const char *argv[]) {
   VM vm;
   initVM(&vm);
   if (argc == 1) {
-    MLC_repl(&vm);
+    initMLC_repl(&vm);
   } else if (argc == 2) {
     MLC_compile(&vm, argv[1]);
   } else {
@@ -17,18 +16,6 @@ int main(int argc, const char *argv[]) {
   }
   deleteVM(&vm);
   return 0;
-}
-
-void MLC_repl(VM *vm) {
-  char line[1024];
-  while (true) {
-    printf(">>> ");
-    if (!fgets(line, sizeof(line), stdin)) {
-      printf("\n");
-      break;
-    }
-    IR res = interpret(vm, line);
-  }
 }
 
 void MLC_compile(VM *vm, const char *filePath) {

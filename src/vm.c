@@ -4,10 +4,12 @@ void initVM(VM* vm) {
   initStack(vm);
   vm->objects = NULL;
   hashTableInit(&vm->strings);
+  hashTableInit(&vm->globals);
 }
 
 void deleteVM(VM* vm) {
   hashTableDelete(&vm->strings);
+  hashTableDelete(&vm->globals);
   Object* obj = vm->objects;
   while (obj != NULL) {
     Object* next = obj->next;
@@ -52,6 +54,7 @@ IR interpret(VM* vm, const char* source) {
 IR run(VM* vm) {
 #define READ_BYTE() (*(vm->instrPtr)++)
 #define READ_CONST() (vm->chunk->constants.values[READ_BYTE()])
+#define READ_STRING() AS_STRING(READ_CONST())
 #define BINARY_OP(valType, op)                                              \
   do {                                                                      \
     if (!IS_NUMBER(vmStackPeek(vm, 0)) || !IS_NUMBER(vmStackPeek(vm, 0))) { \
@@ -105,6 +108,9 @@ IR run(VM* vm) {
       case OP_NOT:
         push(vm, TO_BOOL(isFalse(pop(vm))));
         break;
+      case OP_POP:
+        pop(vm);
+        break;
       case OP_NULL:
         push(vm, TO_NULL);
         break;
@@ -129,6 +135,11 @@ IR run(VM* vm) {
           runtimeError(vm, "Invalid Operation! Operand must be \"Number\" or \"String\" type");
         }
         break;
+      case OP_DEFINE_GLOBAL: {
+        StringObject* name = READ_STRING();
+        hashTableInsertValue(&vm->globals, name, vmStackPeek(vm, 0));
+        pop(vm);
+      } break;
       case OP_MODULO: {
         double b = AS_NUMBER(pop(vm));
         double a = AS_NUMBER(pop(vm));
@@ -140,6 +151,23 @@ IR run(VM* vm) {
       case OP_MULTIPLY:
         BINARY_OP(TO_NUMBER, *);
         break;
+      case OP_GET_GLOBAL: {
+        StringObject* name = READ_STRING();
+        Value val;
+        if (!hashTableGetValue(&vm->globals, name, &val)) {
+          runtimeError(vm, "Undefined variable '%s'.", name->str);
+          return I_RUNTIME_ERR;
+        }
+        push(vm, val);
+      } break;
+      case OP_SET_GLOBAL: {
+        StringObject* name = READ_STRING();
+        if (hashTableInsertValue(&vm->globals, name, vmStackPeek(vm, 0))) {
+          hashTableDeleteValue(&vm->globals, name);
+          runtimeError(vm, "Undefined variable '%s'.", name->str);
+          return I_RUNTIME_ERR;
+        }
+      } break;
       case OP_DIVIDE:
         BINARY_OP(TO_NUMBER, /);
         break;
@@ -150,14 +178,17 @@ IR run(VM* vm) {
         }
         push(vm, TO_NUMBER(-AS_NUMBER(pop(vm))));
         break;
-      case OP_RETURN:
+      case OP_PRINT:
         printVal(pop(vm));
         printf("\n");
+        break;
+      case OP_RETURN:
         return I_OK;
     }
   }
 #undef READ_BYTE
 #undef READ_CONST
+#undef READ_STRING
 #undef BINARY_OP
 }
 
@@ -193,7 +224,7 @@ Value vmStackPeek(VM* vm, int far) {
 void runtimeError(VM* vm, const char* format, ...) {
   size_t instr = vm->instrPtr - vm->chunk->code - 1;
   int line = vm->chunk->lines[instr];
-  fprintf(stderr, "\n\x1b[31;1mError at [line %d] in script:\n\x1b[32;1m  => ", line);
+  fprintf(stderr, "\n\x1b[31;1mError on [line %d] in script:\n\x1b[32;1m  => ", line);
   va_list args;
   va_start(args, format);
   vfprintf(stderr, format, args);

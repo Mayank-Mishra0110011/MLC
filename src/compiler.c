@@ -8,10 +8,107 @@ bool compile(const char *source, Chunk *chunk, HashTable *hash) {
   parser.hadErr = false;
   parser.panic = false;
   advance(&parser, &scanner);
-  expression(&parser, &scanner, hash);
-  consume(&parser, &scanner, TOKEN_EOF, "Expect end of expression");
+  while (!matchToken(&parser, &scanner, TOKEN_EOF)) {
+    declaration(&parser, &scanner, hash);
+  }
   endCompilation(&parser);
   return !parser.hadErr;
+}
+
+bool check(Parser *parser, TokenType type) {
+  return parser->cur.type == type;
+}
+
+void statement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  if (matchToken(parser, scanner, TOKEN_PRINT)) {
+    printStatement(parser, scanner, hash);
+  } else {
+    expressionStatement(parser, scanner, hash);
+  }
+}
+
+void expressionStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  expression(parser, scanner, hash);
+  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
+  emitByte(OP_POP, parser);
+}
+
+void synchronize(Parser *parser, Scanner *scanner) {
+  parser->panic = false;
+  while (parser->cur.type) {
+    if (parser->prev.type == TOKEN_SEMI) return;
+    switch (parser->cur.type) {
+      case TOKEN_CLASS:
+      case TOKEN_FX:
+      case TOKEN_VAR:
+      case TOKEN_FROM:
+      case TOKEN_IF:
+      case TOKEN_WHILE:
+      case TOKEN_PRINT:
+      case TOKEN_RETURN:
+        return;
+    }
+    advance(parser, scanner);
+  }
+}
+
+void declaration(Parser *parser, Scanner *scanner, HashTable *hash) {
+  if (matchToken(parser, scanner, TOKEN_VAR)) {
+    varDeclaration(parser, scanner, hash);
+  } else {
+    statement(parser, scanner, hash);
+  }
+  if (parser->panic) synchronize(parser, scanner);
+}
+
+uint8_t parseVariable(Parser *parser, Scanner *scanner, HashTable *hash, const char *err) {
+  consume(parser, scanner, TOKEN_IDENTIFIER, err);
+  return indentifierConst(&parser->prev, hash);
+}
+
+uint8_t indentifierConst(Token *name, HashTable *hash) {
+  return makeConst(TO_OBJECT(copyString(name->start, name->length, hash)));
+}
+
+void defineVariable(Parser *parser, uint8_t global) {
+  emitBytes(OP_DEFINE_GLOBAL, global, parser);
+}
+
+void variable(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  namedVar(parser, scanner, hash, canAssign);
+}
+
+void namedVar(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  uint8_t arg = indentifierConst(&parser->prev, hash);
+  if (canAssign && matchToken(parser, scanner, TOKEN_EQUAL)) {
+    expression(parser, scanner, hash);
+    emitBytes(OP_SET_GLOBAL, arg, parser);
+  } else {
+    emitBytes(OP_GET_GLOBAL, arg, parser);
+  }
+}
+
+void varDeclaration(Parser *parser, Scanner *scanner, HashTable *hash) {
+  uint8_t globalVar = parseVariable(parser, scanner, hash, "Expected a variable name.");
+  if (matchToken(parser, scanner, TOKEN_EQUAL)) {
+    expression(parser, scanner, hash);
+  } else {
+    emitByte(OP_NULL, parser);
+  }
+  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
+  defineVariable(parser, globalVar);
+}
+
+bool matchToken(Parser *parser, Scanner *scanner, TokenType type) {
+  if (!check(parser, type)) return false;
+  advance(parser, scanner);
+  return true;
+}
+
+void printStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  expression(parser, scanner, hash);
+  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
+  emitByte(OP_PRINT, parser);
 }
 
 void expression(Parser *parser, Scanner *scanner, HashTable *hash) {
@@ -48,7 +145,7 @@ void errorAt(Parser *parser, const char *message) {
   if (parser->panic) return;  //this is where you'd throw an exception but not yet
   Token token = parser->prev;
   parser->panic = true;
-  fprintf(stderr, "[line %d] Error", token.line);
+  fprintf(stderr, "\n\x1b[31;1mError on [line %d]", token.line);
   if (token.type == TOKEN_EOF) {
     fprintf(stderr, " at end");
   } else if (token.type == TOKEN_ERR) {
@@ -56,7 +153,8 @@ void errorAt(Parser *parser, const char *message) {
   } else {
     fprintf(stderr, " at '%.*s'", token.length, token.start);
   }
-  fprintf(stderr, " : %s\n", message);
+  fprintf(stderr, " : \n\x1b[32;1m  => %s\n", message);
+  fputs("\n\x1b[0m", stderr);
   parser->hadErr = true;
 }
 
@@ -85,12 +183,12 @@ Chunk *currentChunk() {
   return compilingChunk;
 }
 
-void number(Parser *parser, Scanner *scanner, HashTable *hash) {
+void number(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   double value = strtod(parser->prev.start, NULL);
   emitConst(parser, TO_NUMBER(value));
 }
 
-void unary(Parser *parser, Scanner *scanner, HashTable *hash) {
+void unary(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   TokenType operatorType = parser->prev.type;
   parsePrecedence(parser, scanner, hash, PRE_UNARY);
   switch (operatorType) {
@@ -103,7 +201,7 @@ void unary(Parser *parser, Scanner *scanner, HashTable *hash) {
   }
 }
 
-void binary(Parser *parser, Scanner *scanner, HashTable *hash) {
+void binary(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   TokenType operator= parser->prev.type;
   ParseRule *rule = getRule(operator);
   parsePrecedence(parser, scanner, hash, (Precedence)(rule->prec + 1));
@@ -144,7 +242,7 @@ void binary(Parser *parser, Scanner *scanner, HashTable *hash) {
   }
 }
 
-void literal(Parser *parser, Scanner *scanner, HashTable *hash) {
+void literal(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   switch (parser->prev.type) {
     case TOKEN_FALSE:
       emitByte(OP_FALSE, parser);
@@ -171,7 +269,7 @@ uint8_t makeConst(Value value) {
   return (uint8_t)constant;
 }
 
-void grouping(Parser *parser, Scanner *scanner, HashTable *hash) {
+void grouping(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   expression(parser, scanner, hash);
   consume(parser, scanner, TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
 }
@@ -180,19 +278,22 @@ void parsePrecedence(Parser *parser, Scanner *scanner, HashTable *hash, Preceden
   advance(parser, scanner);
   ParseFn prefixRule = getRule(parser->prev.type)->prefix;
   if (prefixRule == NULL) {
-    printf("prev.type: %d\n", parser->prev.type);
     error(parser, "Expected expression");
     return;
   }
-  prefixRule(parser, scanner, hash);
+  bool canAssign = precedence <= PRE_ASSIGN;
+  prefixRule(parser, scanner, hash, canAssign);
   while (precedence <= getRule(parser->cur.type)->prec) {
     advance(parser, scanner);
     ParseFn infixRule = getRule(parser->prev.type)->infix;
-    infixRule(parser, scanner, hash);
+    infixRule(parser, scanner, hash, canAssign);
+  }
+  if (canAssign && matchToken(parser, scanner, TOKEN_EQUAL)) {
+    error(parser, "Invalid assignment.");
   }
 }
 
-void string(Parser *parser, Scanner *scanner, HashTable *hash) {
+void string(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   emitConst(parser, TO_OBJECT(copyString(parser->prev.start + 1, parser->prev.length - 2, hash)));
 }
 
@@ -219,7 +320,7 @@ ParseRule rules[] = {
     [TOKEN_LESS_EQUAL] = {NULL, binary, PRE_COMP},
     [TOKEN_LOGICAL_AND] = {NULL, NULL, PRE_NONE},
     [TOKEN_LOGICAL_OR] = {NULL, NULL, PRE_NONE},
-    [TOKEN_IDENTIFIER] = {NULL, NULL, PRE_NONE},
+    [TOKEN_IDENTIFIER] = {variable, NULL, PRE_NONE},
     [TOKEN_STRING] = {string, NULL, PRE_NONE},
     [TOKEN_NUMBER] = {number, NULL, PRE_NONE},
 
