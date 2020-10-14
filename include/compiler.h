@@ -1,8 +1,6 @@
 #ifndef MLC_COMPILER_H
 #define MLC_COMPILER_H
 
-#include <stdlib.h>
-
 #include "hashtable.h"
 #include "object.h"
 #include "scanner.h"
@@ -42,7 +40,19 @@ typedef struct {
   Precedence prec;
 } ParseRule;
 
+typedef struct {
+  Token name;
+  int depth;
+} Local;
+
+typedef struct {
+  Local locals[UINT8_COUNT];
+  int localCount;
+  int scopeDepth;
+} Compiler;
+
 static Chunk *compilingChunk;
+static Compiler *current = NULL;
 
 bool compile(const char *, Chunk *, HashTable *);
 static void expression(Parser *, Scanner *, HashTable *);
@@ -81,5 +91,13 @@ static void varDeclaration(Parser *, Scanner *, HashTable *);
 static uint8_t parseVariable(Parser *, Scanner *, HashTable *, const char *);
 static uint8_t indentifierConst(Token *, HashTable *);
 static void defineVariable(Parser *, uint8_t);
+static void initCompiler(Compiler *);
+static void beginScope();
+static void block(Parser *, Scanner *, HashTable *);
+static void endScope(Parser *);
+static void declareLocalVar(Parser *);
+static bool indentifierEqual(Token *, Token *);
+static int resolveLocal(Parser *, Compiler *, Token *);
+static void markInitialized();
 
 #endif

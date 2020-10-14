@@ -2,9 +2,6 @@
 #define MLC_REPL_H
 
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 

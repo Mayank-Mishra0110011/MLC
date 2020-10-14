@@ -139,12 +139,14 @@ IR run(VM* vm) {
         StringObject* name = READ_STRING();
         hashTableInsertValue(&vm->globals, name, vmStackPeek(vm, 0));
         pop(vm);
-      } break;
+        break;
+      }
       case OP_MODULO: {
         double b = AS_NUMBER(pop(vm));
         double a = AS_NUMBER(pop(vm));
         push(vm, TO_NUMBER(fmod(a, b)));
-      } break;
+        break;
+      }
       case OP_SUBTRACT:
         BINARY_OP(TO_NUMBER, -);
         break;
@@ -159,7 +161,18 @@ IR run(VM* vm) {
           return I_RUNTIME_ERR;
         }
         push(vm, val);
-      } break;
+        break;
+      }
+      case OP_GET_LOCAL: {
+        uint8_t slot = READ_BYTE();
+        push(vm, vm->stack[slot]);
+        break;
+      }
+      case OP_SET_LOCAL: {
+        uint8_t slot = READ_BYTE();
+        vm->stack[slot] = vmStackPeek(vm, 0);
+        break;
+      }
       case OP_SET_GLOBAL: {
         StringObject* name = READ_STRING();
         if (hashTableInsertValue(&vm->globals, name, vmStackPeek(vm, 0))) {
@@ -167,7 +180,8 @@ IR run(VM* vm) {
           runtimeError(vm, "Undefined variable '%s'.", name->str);
           return I_RUNTIME_ERR;
         }
-      } break;
+        break;
+      }
       case OP_DIVIDE:
         BINARY_OP(TO_NUMBER, /);
         break;

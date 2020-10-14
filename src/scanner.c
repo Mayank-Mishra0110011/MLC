@@ -327,11 +327,18 @@ void ignoreWhiteSpaceAndComments(Scanner *scanner) {
         advanceScanner(scanner);
         break;
       case '/':
-        if (peekNext(scanner) == '/') {
-          while (peek(scanner) != '\n' && !isAtEnd(scanner)) advanceScanner(scanner);
+        if (peekNext(scanner) == '#') {
+          advanceScanner(scanner);
+          advanceScanner(scanner);
+          while (peek(scanner) != '#' && peekNext(scanner) != '/' && !isAtEnd(scanner)) {
+            advanceScanner(scanner);
+          }
         } else {
           return;
         }
+        break;
+      case '#':
+        while (peek(scanner) != '\n' && !isAtEnd(scanner)) advanceScanner(scanner);
         break;
       default:
         return;

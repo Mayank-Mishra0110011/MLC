@@ -3,7 +3,9 @@
 bool compile(const char *source, Chunk *chunk, HashTable *hash) {
   Scanner scanner;
   Parser parser;
+  Compiler compiler;
   initScanner(&scanner, source);
+  initCompiler(&compiler);
   compilingChunk = chunk;
   parser.hadErr = false;
   parser.panic = false;
@@ -15,6 +17,12 @@ bool compile(const char *source, Chunk *chunk, HashTable *hash) {
   return !parser.hadErr;
 }
 
+void initCompiler(Compiler *compiler) {
+  compiler->localCount = 0;
+  compiler->scopeDepth = 0;
+  current = compiler;
+}
+
 bool check(Parser *parser, TokenType type) {
   return parser->cur.type == type;
 }
@@ -22,8 +30,31 @@ bool check(Parser *parser, TokenType type) {
 void statement(Parser *parser, Scanner *scanner, HashTable *hash) {
   if (matchToken(parser, scanner, TOKEN_PRINT)) {
     printStatement(parser, scanner, hash);
+  } else if (matchToken(parser, scanner, TOKEN_LEFT_BRACE)) {
+    beginScope();
+    block(parser, scanner, hash);
+    endScope(parser);
   } else {
     expressionStatement(parser, scanner, hash);
+  }
+}
+
+void beginScope() {
+  current->scopeDepth++;
+}
+
+void block(Parser *parser, Scanner *scanner, HashTable *hash) {
+  while (!check(parser, TOKEN_RIGHT_BRACE) && !check(parser, TOKEN_EOF)) {
+    declaration(parser, scanner, hash);
+  }
+  consume(parser, scanner, TOKEN_RIGHT_BRACE, "Expected '}' after block.");
+}
+
+void endScope(Parser *parser) {
+  current->scopeDepth--;
+  while (current->localCount > 0 && current->locals[current->localCount - 1].depth > current->scopeDepth) {
+    emitByte(OP_POP, parser);
+    current->localCount--;
   }
 }
 
@@ -63,14 +94,50 @@ void declaration(Parser *parser, Scanner *scanner, HashTable *hash) {
 
 uint8_t parseVariable(Parser *parser, Scanner *scanner, HashTable *hash, const char *err) {
   consume(parser, scanner, TOKEN_IDENTIFIER, err);
+  declareLocalVar(parser);
+  if (current->scopeDepth > 0) return 0;
   return indentifierConst(&parser->prev, hash);
+}
+
+bool indentifierEqual(Token *tkn1, Token *tkn2) {
+  if (tkn1->length != tkn2->length) return false;
+  return memcmp(tkn1->start, tkn2->start, tkn1->length) == 0;
+}
+
+void declareLocalVar(Parser *parser) {
+  if (current->scopeDepth == 0) return;
+  Local *local;
+  for (int i = current->localCount - 1; i >= 0; i--) {
+    local = &current->locals[i];
+    if (local->depth != -1 && local->depth < current->scopeDepth) {
+      break;
+    }
+    if (indentifierEqual(&parser->prev, &local->name)) {
+      error(parser, "Identifier has already been declared.");
+    }
+  }
+  if (current->localCount == UINT8_COUNT) {
+    error(parser, "Stack Overflow.");
+    return;
+  }
+  local = &current->locals[current->localCount++];
+  local->name = parser->prev;
+  local->depth = -1;
 }
 
 uint8_t indentifierConst(Token *name, HashTable *hash) {
   return makeConst(TO_OBJECT(copyString(name->start, name->length, hash)));
 }
 
+void markInitialized() {
+  current->locals[current->localCount - 1].depth = current->scopeDepth;
+}
+
 void defineVariable(Parser *parser, uint8_t global) {
+  if (current->scopeDepth > 0) {
+    markInitialized();
+    return;
+  }
   emitBytes(OP_DEFINE_GLOBAL, global, parser);
 }
 
@@ -79,13 +146,35 @@ void variable(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign)
 }
 
 void namedVar(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
-  uint8_t arg = indentifierConst(&parser->prev, hash);
+  uint8_t getOp, setOp;
+  int arg = resolveLocal(parser, current, &parser->prev);
+  if (arg != -1) {
+    getOp = OP_GET_LOCAL;
+    setOp = OP_SET_LOCAL;
+  } else {
+    arg = indentifierConst(&parser->prev, hash);
+    getOp = OP_GET_GLOBAL;
+    setOp = OP_SET_GLOBAL;
+  }
   if (canAssign && matchToken(parser, scanner, TOKEN_EQUAL)) {
     expression(parser, scanner, hash);
-    emitBytes(OP_SET_GLOBAL, arg, parser);
+    emitBytes(setOp, (uint8_t)arg, parser);
   } else {
-    emitBytes(OP_GET_GLOBAL, arg, parser);
+    emitBytes(getOp, (uint8_t)arg, parser);
   }
+}
+
+int resolveLocal(Parser *parser, Compiler *compiler, Token *name) {
+  for (int i = compiler->localCount - 1; i >= 0; i--) {
+    Local *local = &compiler->locals[i];
+    if (indentifierEqual(name, &local->name)) {
+      if (local->depth == -1) {
+        error(parser, "Cannot access local variable before initialization");
+      }
+      return i;
+    }
+  }
+  return -1;
 }
 
 void varDeclaration(Parser *parser, Scanner *scanner, HashTable *hash) {
@@ -95,6 +184,7 @@ void varDeclaration(Parser *parser, Scanner *scanner, HashTable *hash) {
   } else {
     emitByte(OP_NULL, parser);
   }
+
   consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
   defineVariable(parser, globalVar);
 }

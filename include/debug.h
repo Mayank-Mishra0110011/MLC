@@ -7,5 +7,6 @@ void disassembleChunk(Chunk *, const char *);
 int disassembleInstruction(Chunk *, int);
 static int simpleInstruction(const char *, int);
 static int constantInstruction(const char *, Chunk *, int);
+static int byteInstruction(const char *, Chunk *, int);
 
 #endif
