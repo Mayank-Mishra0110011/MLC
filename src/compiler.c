@@ -200,7 +200,7 @@ void emitLoop(int loopStart, Parser *parser) {
   however, for now if no cases match AND a def case exists, the 
   program seg faults.
   since def case can be anywhere in the switch stmt we should
-  remeber it's jmp offset.
+  remember it's jmp offset.
   fix it later.
 */
 void switchStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
