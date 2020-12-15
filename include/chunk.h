@@ -4,31 +4,39 @@
 #include "value.h"
 
 typedef enum {
-  OP_CONST,
-  OP_ADD,
-  OP_MODULO,
-  OP_DEFINE_GLOBAL,
-  OP_SUBTRACT,
-  OP_NOT,
-  OP_POP,
-  OP_GET_GLOBAL,
-  OP_SET_GLOBAL,
-  OP_GET_LOCAL,
-  OP_SET_LOCAL,
-  OP_MULTIPLY,
-  OP_DIVIDE,
-  OP_NEGATE,
-  OP_RETURN,
-  OP_NULL,
-  OP_TRUE,
-  OP_FALSE,
-  OP_EQUAL,
-  OP_NOT_EQUAL,
-  OP_GREATER,
-  OP_GREATER_EQUAL,
-  OP_LESS,
-  OP_LESS_EQUAL,
-  OP_PRINT
+  OP_SWITCH_START,   // 0
+  OP_SWITCH_END,     // 1
+  OP_CASE,           // 2
+  OP_BRK,            // 3
+  OP_CONT,           // 4
+  OP_CONST,          // 5
+  OP_ADD,            // 6
+  OP_MODULO,         // 7
+  OP_DEFINE_GLOBAL,  // 8
+  OP_SUBTRACT,       // 9
+  OP_NOT,            // 10
+  OP_POP,            // 11
+  OP_GET_GLOBAL,     // 12
+  OP_SET_GLOBAL,     // 13
+  OP_GET_LOCAL,      // 14
+  OP_SET_LOCAL,      // 15
+  OP_JMP_IF_FALSE,   // 16
+  OP_LOOP,           // 17
+  OP_JMP,            // 18
+  OP_MULTIPLY,       // 19
+  OP_DIVIDE,         // 20
+  OP_NEGATE,         // 21
+  OP_RETURN,         // 22
+  OP_NULL,           // 23
+  OP_TRUE,           // 24
+  OP_FALSE,          // 25
+  OP_EQUAL,          // 26
+  OP_NOT_EQUAL,      // 27
+  OP_GREATER,        // 28
+  OP_GREATER_EQUAL,  // 29
+  OP_LESS,           // 30
+  OP_LESS_EQUAL,     // 31
+  OP_PRINT           // 32
 } OpCode;
 
 typedef struct {

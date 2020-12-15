@@ -20,6 +20,11 @@ void deleteVM(VM* vm) {
 
 void freeObject(Object* obj) {
   switch (obj->type) {
+    case FUNCTION_OBJECT: {
+      FunctionObject* fx = (FunctionObject*)obj;
+      FREE(FunctionObject, obj);
+      break;
+    }
     case STRING_OBJECT: {
       StringObject* string = (StringObject*)obj;
       DELETE_ARRAY(char, string->str, string->length + 1);
@@ -31,6 +36,8 @@ void freeObject(Object* obj) {
 
 void initStack(VM* vm) {
   vm->stackTop = vm->stack;
+  vm->switchValTop = vm->switchVal;
+  vm->caseValTop = vm->caseVal;
 }
 
 IR interpret(VM* vm, const char* source) {
@@ -54,6 +61,7 @@ IR interpret(VM* vm, const char* source) {
 IR run(VM* vm) {
 #define READ_BYTE() (*(vm->instrPtr)++)
 #define READ_CONST() (vm->chunk->constants.values[READ_BYTE()])
+#define READ_SHORT() (vm->instrPtr += 2, (uint16_t)((vm->instrPtr[-2] << 8) | vm->instrPtr[-1]))
 #define READ_STRING() AS_STRING(READ_CONST())
 #define BINARY_OP(valType, op)                                              \
   do {                                                                      \
@@ -65,7 +73,6 @@ IR run(VM* vm) {
     double a = AS_NUMBER(pop(vm));                                          \
     push(vm, valType(a op b));                                              \
   } while (false)
-
   while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
     printf("\nSTACK after evaluating last instruction :");
@@ -80,9 +87,29 @@ IR run(VM* vm) {
     printf("\n\n");
     disassembleInstruction(vm->chunk, (int)(vm->instrPtr - vm->chunk->code));
 #endif
-    uint8_t instr;
+    uint8_t instr = READ_BYTE();
     Value constant, a, b;
-    switch (instr = READ_BYTE()) {
+    switch (instr) {
+      case OP_BRK:
+        *(vm->caseValTop - 1) = false;
+        break;
+      case OP_SWITCH_START:
+        *(vm->switchValTop) = pop(vm);
+        vm->switchValTop++;
+        *(vm->caseValTop) = false;
+        vm->caseValTop++;
+        break;
+      case OP_SWITCH_END:
+        vm->switchValTop--;
+        vm->caseValTop--;
+        if (vm->switchValTop == &vm->switchVal[0]) pop(vm);
+        break;
+      case OP_CASE: {
+        bool eq = *(vm->caseValTop - 1) || isEqual(*(vm->switchValTop - 1), pop(vm));
+        *(vm->caseValTop - 1) = eq;
+        push(vm, TO_BOOL(eq));
+        break;
+      }
       case OP_EQUAL:
         a = pop(vm);
         b = pop(vm);
@@ -120,10 +147,11 @@ IR run(VM* vm) {
       case OP_FALSE:
         push(vm, TO_BOOL(false));
         break;
-      case OP_CONST:
+      case OP_CONST: {
         constant = READ_CONST();
         push(vm, constant);
         break;
+      }
       case OP_ADD:
         if (IS_STRING(vmStackPeek(vm, 0)) && IS_STRING(vmStackPeek(vm, 1))) {
           concatString(vm);
@@ -153,6 +181,21 @@ IR run(VM* vm) {
       case OP_MULTIPLY:
         BINARY_OP(TO_NUMBER, *);
         break;
+      case OP_LOOP: {
+        uint16_t offset = READ_SHORT();
+        vm->instrPtr -= offset;
+        break;
+      }
+      case OP_JMP: {
+        uint16_t offset = READ_SHORT();
+        vm->instrPtr += offset;
+        break;
+      }
+      case OP_JMP_IF_FALSE: {
+        uint16_t offset = READ_SHORT();
+        if (isFalse(vmStackPeek(vm, 0))) vm->instrPtr += offset;
+        break;
+      }
       case OP_GET_GLOBAL: {
         StringObject* name = READ_STRING();
         Value val;
@@ -192,16 +235,18 @@ IR run(VM* vm) {
         }
         push(vm, TO_NUMBER(-AS_NUMBER(pop(vm))));
         break;
-      case OP_PRINT:
+      case OP_PRINT: {
         printVal(pop(vm));
         printf("\n");
         break;
+      }
       case OP_RETURN:
         return I_OK;
     }
   }
 #undef READ_BYTE
 #undef READ_CONST
+#undef READ_SHORT
 #undef READ_STRING
 #undef BINARY_OP
 }
@@ -227,7 +272,7 @@ void push(VM* vm, Value value) {
 }
 
 Value pop(VM* vm) {
-  vm->stackTop--;
+  if (!underflow(vm)) vm->stackTop--;
   return *(vm->stackTop);
 }
 
@@ -245,6 +290,10 @@ void runtimeError(VM* vm, const char* format, ...) {
   va_end(args);
   fputs("\n\n\x1b[0m", stderr);
   initStack(vm);
+}
+
+bool underflow(VM* vm) {
+  return vm->stackTop == &vm->stack[0];
 }
 
 bool isFalse(Value val) {

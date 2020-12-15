@@ -19,6 +19,16 @@ int disassembleInstruction(Chunk *chunk, int offset) {
   }
   uint8_t instr = chunk->code[offset];
   switch (instr) {
+    case OP_SWITCH_END:
+      return simpleInstruction("    OP_SWITCH_END", offset);
+    case OP_SWITCH_START:
+      return simpleInstruction("    OP_SWITCH_START", offset);
+    case OP_CASE:
+      return simpleInstruction("    OP_CASE", offset);
+    case OP_BRK:
+      return simpleInstruction("    OP_BRK", offset);
+    case OP_CONT:
+      return simpleInstruction("    OP_CONT", offset);
     case OP_TRUE:
       return simpleInstruction("    OP_TRUE", offset);
     case OP_FALSE:
@@ -57,6 +67,12 @@ int disassembleInstruction(Chunk *chunk, int offset) {
       return byteInstruction("    OP_SET_LOCAL        ", chunk, offset);
     case OP_EQUAL:
       return simpleInstruction("    OP_EQUAL", offset);
+    case OP_LOOP:
+      return jumpInstruction("    OP_LOOP          ", -1, chunk, offset);
+    case OP_JMP:
+      return jumpInstruction("    OP_JMP           ", 1, chunk, offset);
+    case OP_JMP_IF_FALSE:
+      return jumpInstruction("    OP_JMP_IF_FALSE  ", 1, chunk, offset);
     case OP_NOT_EQUAL:
       return simpleInstruction("    OP_NOT_EQUAL", offset);
     case OP_GREATER:
@@ -73,6 +89,13 @@ int disassembleInstruction(Chunk *chunk, int offset) {
       printf("Unknown opcode %d\n", instr);
       return offset + 1;
   }
+}
+
+int jumpInstruction(const char *name, int sign, Chunk *chunk, int offset) {
+  uint16_t jmp = (uint16_t)(chunk->code[offset + 1] << 8);
+  jmp |= chunk->code[offset + 2];
+  printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jmp);
+  return offset + 3;
 }
 
 int simpleInstruction(const char *name, int offset) {

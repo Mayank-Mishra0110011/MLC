@@ -8,6 +8,7 @@
 
 typedef enum {
   STRING_OBJECT,
+  FUNCTION_OBJECT
 } ObjectType;
 
 struct ObjectStruct {
@@ -26,6 +27,12 @@ struct ObjectStructString {
 
 typedef struct ObjectStructString StringObject;
 
+typedef struct {
+  Object obj;
+  int arity;
+  StringObject *name;
+} FunctionObject;
+
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->type)
 
 #define AS_STRING(value) ((StringObject *)AS_OBJECT(value))
@@ -34,6 +41,8 @@ typedef struct ObjectStructString StringObject;
 #define ALLOCATE_OBJECT(type, objectType) (type *)allocateObject(sizeof(type), objectType)
 
 Object *allocateObject(size_t, ObjectType);
+FunctionObject *newFunction();
+
 uint32_t hashString(const char *, int);
 
 #endif

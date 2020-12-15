@@ -15,6 +15,10 @@ typedef struct {
   Chunk *chunk;
   uint8_t *instrPtr;
   Value stack[STACK_MAX];
+  Value switchVal[STACK_MAX];
+  bool caseVal[STACK_MAX];
+  bool *caseValTop;
+  Value *switchValTop;
   Value *stackTop;
   Object *objects;
   HashTable strings;
@@ -29,7 +33,7 @@ typedef enum {
 
 void initVM(VM *);
 void deleteVM(VM *);
-IR interpret(VM *, const char *source);
+IR interpret(VM *, const char *);
 void push(VM *, Value);
 Value pop(VM *);
 
@@ -39,6 +43,7 @@ static void concatString(VM *);
 static Value vmStackPeek(VM *, int);
 static void runtimeError(VM *, const char *, ...);
 static bool isFalse(Value);
+static bool underflow(VM *);
 static void freeObject(Object *);
 
 #endif

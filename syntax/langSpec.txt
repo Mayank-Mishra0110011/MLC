@@ -1,7 +1,7 @@
 Keywords
-  brk (break), const, cont (continue), else, elif, enum, 
+  brk (break), const, cont (continue), else, enum, 
   false, var, pub (public), priv (private), prot (protected), 
-  super, while, from - to (for loop), return, impl (implements), 
+  super, while, from (for loop), return, impl (implements), 
   static, self, true, typeOf, instanceOf, do, vr (virtual), 
   abs (abstract), yield, final, try, catch, 
   finally, throw, throws, ext (extends), class, switch, case, 
@@ -41,7 +41,7 @@ class C ext A {
 
 ls = [new A(), new B(), new C()];
 
-from 0 to ls.len {
+from var i = 0; i < ls.len; i++ {
   ls[i].a();
 }
 

@@ -20,6 +20,7 @@ bool compile(const char *source, Chunk *chunk, HashTable *hash) {
 void initCompiler(Compiler *compiler) {
   compiler->localCount = 0;
   compiler->scopeDepth = 0;
+  compiler->labelCount = 0;
   current = compiler;
 }
 
@@ -30,6 +31,14 @@ bool check(Parser *parser, TokenType type) {
 void statement(Parser *parser, Scanner *scanner, HashTable *hash) {
   if (matchToken(parser, scanner, TOKEN_PRINT)) {
     printStatement(parser, scanner, hash);
+  } else if (matchToken(parser, scanner, TOKEN_IF)) {
+    ifStatement(parser, scanner, hash);
+  } else if (matchToken(parser, scanner, TOKEN_WHILE)) {
+    whileStatement(parser, scanner, hash);
+  } else if (matchToken(parser, scanner, TOKEN_FROM)) {
+    fromStatement(parser, scanner, hash);
+  } else if (matchToken(parser, scanner, TOKEN_SWITCH)) {
+    switchStatement(parser, scanner, hash);
   } else if (matchToken(parser, scanner, TOKEN_LEFT_BRACE)) {
     beginScope();
     block(parser, scanner, hash);
@@ -47,7 +56,7 @@ void block(Parser *parser, Scanner *scanner, HashTable *hash) {
   while (!check(parser, TOKEN_RIGHT_BRACE) && !check(parser, TOKEN_EOF)) {
     declaration(parser, scanner, hash);
   }
-  consume(parser, scanner, TOKEN_RIGHT_BRACE, "Expected '}' after block.");
+  consume(parser, scanner, TOKEN_RIGHT_BRACE, "Expected '}' after block");
 }
 
 void endScope(Parser *parser) {
@@ -60,7 +69,7 @@ void endScope(Parser *parser) {
 
 void expressionStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
   expression(parser, scanner, hash);
-  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
+  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value");
   emitByte(OP_POP, parser);
 }
 
@@ -77,8 +86,10 @@ void synchronize(Parser *parser, Scanner *scanner) {
       case TOKEN_WHILE:
       case TOKEN_PRINT:
       case TOKEN_RETURN:
+      default:
         return;
     }
+    printf("END %d, %d\n", parser->cur.type, parser->prev.type);
     advance(parser, scanner);
   }
 }
@@ -161,7 +172,140 @@ void namedVar(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign)
     emitBytes(setOp, (uint8_t)arg, parser);
   } else {
     emitBytes(getOp, (uint8_t)arg, parser);
+    if (parser->cur.type == TOKEN_INCREMENT || parser->cur.type == TOKEN_DECREMENT) {
+      emitConst(parser, TO_NUMBER(1));
+      emitByte(parser->cur.type == TOKEN_INCREMENT ? OP_ADD : OP_SUBTRACT, parser);
+      emitBytes(setOp, (uint8_t)arg, parser);
+      advance(parser, scanner);
+    }
   }
+}
+
+void backpatchJump(Parser *parser, int offset) {
+  int jmp = currentChunk()->count - offset - 2;
+  if (jmp > UINT16_MAX) error(parser, "Stack Overflow.");
+  currentChunk()->code[offset] = (jmp >> 8) & 0xff;
+  currentChunk()->code[offset + 1] = jmp & 0xff;
+}
+
+void emitLoop(int loopStart, Parser *parser) {
+  emitByte(OP_LOOP, parser);
+  int offset = currentChunk()->count - loopStart + 2;
+  if (offset > UINT16_MAX) error(parser, "Stack Overflow.");
+  emitBytes((offset >> 8) & 0xff, offset & 0xff, parser);
+}
+
+/*
+  if none of the cases match it should jump into the def case
+  however, for now if no cases match AND a def case exists, the 
+  program seg faults.
+  since def case can be anywhere in the switch stmt we should
+  remeber it's jmp offset.
+  fix it later.
+*/
+void switchStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  beginScope();
+  expression(parser, scanner, hash);
+  emitByte(OP_SWITCH_START, parser);
+  consume(parser, scanner, TOKEN_LEFT_BRACE, "Expected '{' after switch expression");
+  int exitJmp = -1;
+  while (matchToken(parser, scanner, TOKEN_CASE) || check(parser, TOKEN_DEFAULT)) {
+    if (!check(parser, TOKEN_DEFAULT)) {
+      expression(parser, scanner, hash);
+      consume(parser, scanner, TOKEN_LABEL, "Expected ':' after case expression");
+    } else {
+      matchToken(parser, scanner, TOKEN_DEFAULT);
+      consume(parser, scanner, TOKEN_LABEL, "Expected ':' after def");
+    }
+    emitByte(OP_CASE, parser);
+    exitJmp = emitJump(OP_JMP_IF_FALSE, parser);
+    emitByte(OP_POP, parser);
+    while (!check(parser, TOKEN_CASE) && !check(parser, TOKEN_DEFAULT) && !check(parser, TOKEN_RIGHT_BRACE))
+      declaration(parser, scanner, hash);
+    if (!check(parser, TOKEN_DEFAULT)) backpatchJump(parser, exitJmp);
+    if (!check(parser, TOKEN_RIGHT_BRACE) && !check(parser, TOKEN_DEFAULT)) emitByte(OP_POP, parser);
+  }
+  consume(parser, scanner, TOKEN_RIGHT_BRACE, "Expected '}' at the end of switch statement");
+  emitByte(OP_SWITCH_END, parser);
+  endScope(parser);
+}
+
+void fromStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  beginScope();
+  if (matchToken(parser, scanner, TOKEN_SEMI)) {
+  } else if (matchToken(parser, scanner, TOKEN_VAR)) {
+    varDeclaration(parser, scanner, hash);
+  } else {
+    expressionStatement(parser, scanner, hash);
+  }
+  int curLabelCount = current->labelCount;
+  int loopStart = currentChunk()->count;
+  int exitJmp = -1;
+  if (!matchToken(parser, scanner, TOKEN_SEMI)) {
+    expression(parser, scanner, hash);
+    consume(parser, scanner, TOKEN_SEMI, "Expected ';' after loop condition");
+    exitJmp = emitJump(OP_JMP_IF_FALSE, parser);
+    current->labels[current->labelCount++] = exitJmp;
+    emitByte(OP_POP, parser);
+  } else {
+    exitJmp = emitJump(OP_JMP_IF_FALSE, parser);
+    current->labels[current->labelCount++] = exitJmp;
+    current->labels[current->labelCount++] = exitJmp;
+  }
+  if (!check(parser, TOKEN_LEFT_BRACE)) {
+    int bodyJmp = emitJump(OP_JMP, parser);
+    int incrementStart = currentChunk()->count;
+    if (!matchToken(parser, scanner, TOKEN_LEFT_BRACE)) {
+      expression(parser, scanner, hash);
+    }
+    emitByte(OP_POP, parser);
+    emitLoop(loopStart, parser);
+    loopStart = incrementStart;
+    current->labels[current->labelCount++] = loopStart;
+    backpatchJump(parser, bodyJmp);
+  }
+  statement(parser, scanner, hash);
+  emitLoop(loopStart, parser);
+  if (exitJmp != -1) {
+    backpatchJump(parser, exitJmp);
+    emitByte(OP_POP, parser);
+  }
+  endScope(parser);
+  if (curLabelCount != current->labelCount) current->labelCount = curLabelCount;
+}
+
+void whileStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  int loopStart = currentChunk()->count;
+  int curLabelCount = current->labelCount;
+  expression(parser, scanner, hash);
+  int exitJmpOffset = emitJump(OP_JMP_IF_FALSE, parser);
+  current->labels[current->labelCount++] = exitJmpOffset;
+  current->labels[current->labelCount++] = loopStart;
+  emitByte(OP_POP, parser);
+  statement(parser, scanner, hash);
+  emitLoop(loopStart, parser);
+  backpatchJump(parser, exitJmpOffset);
+  emitByte(OP_POP, parser);
+  if (curLabelCount != current->labelCount) current->labelCount = curLabelCount;
+}
+
+void ifStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
+  expression(parser, scanner, hash);
+  int ifJumpOffset = emitJump(OP_JMP_IF_FALSE, parser);
+  emitByte(OP_POP, parser);
+  statement(parser, scanner, hash);
+  int elseJumpOffset = emitJump(OP_JMP, parser);
+  backpatchJump(parser, ifJumpOffset);
+  emitByte(OP_POP, parser);
+  if (matchToken(parser, scanner, TOKEN_ELSE)) statement(parser, scanner, hash);
+  backpatchJump(parser, elseJumpOffset);
+}
+
+int emitJump(uint8_t instr, Parser *parser) {
+  emitByte(instr, parser);
+  emitByte(0xff, parser);
+  emitByte(0xff, parser);
+  return currentChunk()->count - 2;
 }
 
 int resolveLocal(Parser *parser, Compiler *compiler, Token *name) {
@@ -178,14 +322,13 @@ int resolveLocal(Parser *parser, Compiler *compiler, Token *name) {
 }
 
 void varDeclaration(Parser *parser, Scanner *scanner, HashTable *hash) {
-  uint8_t globalVar = parseVariable(parser, scanner, hash, "Expected a variable name.");
+  uint8_t globalVar = parseVariable(parser, scanner, hash, "Expected a variable name");
   if (matchToken(parser, scanner, TOKEN_EQUAL)) {
     expression(parser, scanner, hash);
   } else {
     emitByte(OP_NULL, parser);
   }
-
-  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
+  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value");
   defineVariable(parser, globalVar);
 }
 
@@ -197,7 +340,7 @@ bool matchToken(Parser *parser, Scanner *scanner, TokenType type) {
 
 void printStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
   expression(parser, scanner, hash);
-  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value.");
+  consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value");
   emitByte(OP_PRINT, parser);
 }
 
@@ -321,13 +464,13 @@ void binary(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
       emitByte(OP_GREATER, parser);
       break;
     case TOKEN_GREATER_EQUAL:
-      emitBytes(OP_GREATER, OP_EQUAL, parser);
+      emitByte(OP_GREATER_EQUAL, parser);
       break;
     case TOKEN_LESS:
       emitByte(OP_LESS, parser);
       break;
     case TOKEN_LESS_EQUAL:
-      emitBytes(OP_LESS, OP_EQUAL, parser);
+      emitByte(OP_LESS_EQUAL, parser);
       break;
   }
 }
@@ -361,7 +504,23 @@ uint8_t makeConst(Value value) {
 
 void grouping(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   expression(parser, scanner, hash);
-  consume(parser, scanner, TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
+  consume(parser, scanner, TOKEN_RIGHT_PAREN, "Expected ')' after expression");
+}
+
+void logicalAnd(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  int jmpOffset = emitJump(OP_JMP_IF_FALSE, parser);
+  emitByte(OP_POP, parser);
+  parsePrecedence(parser, scanner, hash, PRE_LOGICAL_AND);
+  backpatchJump(parser, jmpOffset);
+}
+
+void logicalOr(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  int elseJmpOffset = emitJump(OP_JMP_IF_FALSE, parser);
+  int jmpOffset = emitJump(OP_JMP, parser);
+  backpatchJump(parser, elseJmpOffset);
+  emitByte(OP_POP, parser);
+  parsePrecedence(parser, scanner, hash, PRE_LOGICAL_OR);
+  backpatchJump(parser, jmpOffset);
 }
 
 void parsePrecedence(Parser *parser, Scanner *scanner, HashTable *hash, Precedence precedence) {
@@ -383,6 +542,32 @@ void parsePrecedence(Parser *parser, Scanner *scanner, HashTable *hash, Preceden
   }
 }
 
+void incOrDec(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  // Refactor
+  // This behaviour is incomplete
+  // post inc/dec should happen after evaluating the current expression
+  Token t = parser->prev;
+  parser->prev = parser->cur;
+  parser->cur = t;
+  variable(parser, scanner, hash, canAssign);
+}
+
+void cont(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  emitLoop(current->labels[current->labelCount - 1], parser);
+  current->labelCount -= 2;
+}
+
+static void brk(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
+  if (current->labelCount > 0) {
+    emitConst(parser, TO_BOOL(false));
+    current->labelCount--;
+    emitLoop(current->labels[current->labelCount - 1] - 1, parser);
+    current->labelCount--;
+  } else {
+    emitByte(OP_BRK, parser);
+  }
+}
+
 void string(Parser *parser, Scanner *scanner, HashTable *hash, bool canAssign) {
   emitConst(parser, TO_OBJECT(copyString(parser->prev.start + 1, parser->prev.length - 2, hash)));
 }
@@ -396,6 +581,8 @@ ParseRule rules[] = {
     [TOKEN_DOT] = {NULL, NULL, PRE_NONE},
     [TOKEN_MINUS] = {unary, binary, PRE_TERM},
     [TOKEN_PLUS] = {NULL, binary, PRE_TERM},
+    [TOKEN_INCREMENT] = {incOrDec, NULL, PRE_NONE},
+    [TOKEN_DECREMENT] = {incOrDec, NULL, PRE_NONE},
     [TOKEN_MODULO] = {NULL, binary, PRE_TERM},
     [TOKEN_SEMI] = {NULL, NULL, PRE_NONE},
     [TOKEN_STAR] = {NULL, binary, PRE_FACTOR},
@@ -408,8 +595,8 @@ ParseRule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL, binary, PRE_COMP},
     [TOKEN_LESS] = {NULL, binary, PRE_COMP},
     [TOKEN_LESS_EQUAL] = {NULL, binary, PRE_COMP},
-    [TOKEN_LOGICAL_AND] = {NULL, NULL, PRE_NONE},
-    [TOKEN_LOGICAL_OR] = {NULL, NULL, PRE_NONE},
+    [TOKEN_LOGICAL_AND] = {NULL, logicalAnd, PRE_LOGICAL_AND},
+    [TOKEN_LOGICAL_OR] = {NULL, logicalOr, PRE_LOGICAL_OR},
     [TOKEN_IDENTIFIER] = {variable, NULL, PRE_NONE},
     [TOKEN_STRING] = {string, NULL, PRE_NONE},
     [TOKEN_NUMBER] = {number, NULL, PRE_NONE},
@@ -426,11 +613,9 @@ ParseRule rules[] = {
     [TOKEN_TRUE] = {literal, NULL, PRE_NONE},
     [TOKEN_FALSE] = {literal, NULL, PRE_NONE},
     [TOKEN_FROM] = {NULL, NULL, PRE_NONE},
-    [TOKEN_TO] = {NULL, NULL, PRE_NONE},
     [TOKEN_WHILE] = {NULL, NULL, PRE_NONE},
     [TOKEN_DO] = {NULL, NULL, PRE_NONE},
     [TOKEN_IF] = {NULL, NULL, PRE_NONE},
-    [TOKEN_ELIF] = {NULL, NULL, PRE_NONE},
     [TOKEN_ELSE] = {NULL, NULL, PRE_NONE},
     [TOKEN_SWITCH] = {NULL, NULL, PRE_NONE},
     [TOKEN_CASE] = {NULL, NULL, PRE_NONE},
@@ -443,8 +628,8 @@ ParseRule rules[] = {
     [TOKEN_THROW] = {NULL, NULL, PRE_NONE},
     [TOKEN_THROWS] = {NULL, NULL, PRE_NONE},
     [TOKEN_YIELD] = {NULL, NULL, PRE_NONE},
-    [TOKEN_BRK] = {NULL, NULL, PRE_NONE},
-    [TOKEN_CONT] = {NULL, NULL, PRE_NONE},
+    [TOKEN_BRK] = {brk, NULL, PRE_NONE},
+    [TOKEN_CONT] = {cont, NULL, PRE_NONE},
     [TOKEN_MIXIN] = {NULL, NULL, PRE_NONE},
     [TOKEN_STRUCT] = {NULL, NULL, PRE_NONE},
     [TOKEN_OBJECT] = {NULL, NULL, PRE_NONE},

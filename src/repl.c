@@ -218,7 +218,7 @@ void colorIfMatch(char *token) {
       }
       break;
     case 'e':
-      if (REPLmatchToken(token + 1, "lse") == 0 || REPLmatchToken(token + 1, "lif") == 0 || REPLmatchToken(token + 1, "xp") == 0) {
+      if (REPLmatchToken(token + 1, "lse") == 0 || REPLmatchToken(token + 1, "xp") == 0) {
         printBack(strlen(token));
         setColor("\x1b[35;1m");
         printf("%s", token);
@@ -316,7 +316,7 @@ void colorIfMatch(char *token) {
       }
       break;
     case 't':
-      if (REPLmatchToken(token + 1, "hrow") == 0 || REPLmatchToken(token + 1, "hrows") == 0 || REPLmatchToken(token + 1, "o") == 0 || REPLmatchToken(token + 1, "ry") == 0) {
+      if (REPLmatchToken(token + 1, "hrow") == 0 || REPLmatchToken(token + 1, "hrows") == 0 || REPLmatchToken(token + 1, "ry") == 0) {
         printBack(strlen(token));
         setColor("\x1b[35;1m");
         printf("%s", token);
@@ -428,6 +428,7 @@ void MLC_repl(int mode, VM *vm) {
         printf("\b%s ", (line.buffer + line.offset));
         printBack(line.length - line.offset + 1);
       } else if (c == KEY_ENTER) {
+        printf("\n");
         break;
       } else {
         *(line.buffer + line.offset) = c;

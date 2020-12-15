@@ -14,7 +14,7 @@
       "patterns": [
         {
           "name": "entity.name.function",
-          "match": "\\b(fx)\\b"
+          "match": "\\b(fx|print)\\b"
         },
         {
           "name": "entity.name.class",
@@ -22,7 +22,7 @@
         },
         {
           "name": "keyword.control.mlc",
-          "match": "\\b(if|while|from|return|to|brk|cont|else|try|catch|goto|imp|exp|switch|case|def|yield|finally|throw|throws|do|elif|async|await)\\b"
+          "match": "\\b(if|while|from|return|brk|cont|else|try|catch|goto|imp|exp|switch|case|def|yield|finally|throw|throws|do|async|await)\\b"
         },
         {
           "name": "entity.name.type",

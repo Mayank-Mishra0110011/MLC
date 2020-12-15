@@ -57,6 +57,8 @@ bool isEqual(Value a, Value b) {
 
 void printObject(Value val) {
   switch (OBJECT_TYPE(val)) {
+    case FUNCTION_OBJECT:
+      printf("<fx %s>", AS_FUNCTION(val)->name->str);
     case STRING_OBJECT:
       printf("%s", AS_CSTRING(val));
       break;

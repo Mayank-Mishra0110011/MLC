@@ -14,3 +14,10 @@ uint32_t hashString(const char *str, int length) {
   }
   return hash;
 }
+
+FunctionObject *newFunction() {
+  FunctionObject *fx = ALLOCATE_OBJECT(FunctionObject, FUNCTION_OBJECT);
+  fx->arity = 0;
+  fx->name = NULL;
+  return fx;
+}

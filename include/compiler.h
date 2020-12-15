@@ -21,8 +21,8 @@ typedef struct {
 typedef enum {
   PRE_NONE,
   PRE_ASSIGN,
-  PRE_OR,
-  PRE_AND,
+  PRE_LOGICAL_OR,
+  PRE_LOGICAL_AND,
   PRE_EQUALITY,
   PRE_COMP,
   PRE_TERM,
@@ -47,7 +47,9 @@ typedef struct {
 
 typedef struct {
   Local locals[UINT8_COUNT];
+  int labels[UINT8_MAX];
   int localCount;
+  int labelCount;
   int scopeDepth;
 } Compiler;
 
@@ -56,6 +58,8 @@ static Compiler *current = NULL;
 
 bool compile(const char *, Chunk *, HashTable *);
 static void expression(Parser *, Scanner *, HashTable *);
+static void statement(Parser *, Scanner *, HashTable *);
+static void expressionStatement(Parser *, Scanner *, HashTable *);
 static void parsePrecedence(Parser *, Scanner *, HashTable *, Precedence);
 
 static void grouping(Parser *, Scanner *, HashTable *, bool);
@@ -66,6 +70,8 @@ static void unary(Parser *, Scanner *, HashTable *, bool);
 static void number(Parser *, Scanner *, HashTable *, bool);
 static void variable(Parser *, Scanner *, HashTable *, bool);
 static void namedVar(Parser *, Scanner *, HashTable *, bool);
+static void logicalAnd(Parser *, Scanner *, HashTable *, bool);
+static void logicalOr(Parser *, Scanner *, HashTable *, bool);
 
 static ParseRule *getRule(TokenType);
 static uint8_t makeConst(Value);
@@ -81,11 +87,9 @@ static void advance(Parser *, Scanner *);
 static void emitReturn(Parser *);
 static void endCompilation(Parser *);
 static bool matchToken(Parser *, Scanner *, TokenType);
-static void statement(Parser *, Scanner *, HashTable *);
 static void declaration(Parser *, Scanner *, HashTable *);
 static bool check(Parser *, TokenType);
 static void printStatement(Parser *, Scanner *, HashTable *);
-static void expressionStatement(Parser *, Scanner *, HashTable *);
 static void synchronize(Parser *, Scanner *);
 static void varDeclaration(Parser *, Scanner *, HashTable *);
 static uint8_t parseVariable(Parser *, Scanner *, HashTable *, const char *);
@@ -99,5 +103,14 @@ static void declareLocalVar(Parser *);
 static bool indentifierEqual(Token *, Token *);
 static int resolveLocal(Parser *, Compiler *, Token *);
 static void markInitialized();
+static void ifStatement(Parser *, Scanner *, HashTable *);
+static void whileStatement(Parser *, Scanner *, HashTable *);
+static void switchStatement(Parser *, Scanner *, HashTable *);
+static void evalCase(Parser *, Scanner *, HashTable *);
+static void fromStatement(Parser *, Scanner *, HashTable *);
+static int emitJump(uint8_t, Parser *);
+static void cont(Parser *, Scanner *, HashTable *, bool);
+static void emitLoop(int, Parser *);
+static void backpatchJump(Parser *, int);
 
 #endif

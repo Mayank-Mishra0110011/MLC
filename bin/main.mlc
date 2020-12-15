@@ -1,18 +1,50 @@
-var global = "global";
-{
-  var local1 = "local 1";
-  {
-    var local2 = global + " local 2";
-    print global;
-    print local1;
-    print local2;
-    #shadowing local1
-    var local1 = 25;
-    print local1;
-  }
-  print local1;
+var i = 1;
+
+switch i {
+  case 0:
+    print i;
+  case 1:
+    var p = 3;
+    switch p {
+      case 0:
+        print "0";
+      case 1: 
+        print "1";
+      case 2:
+        print "2";
+      case 3:
+        print "3";
+      def:
+        print "in def";
+    }
+    from var j = i; j < 5; j++ {
+      print "looping";
+    }
+    print "end";
+  case 2:
+    print "something";
 }
-print global;
-#undefined err
-print local1;
-print local2;
+
+switch i {
+  case 1:
+  case 2:
+    print "aa"; 
+  def:
+    print "def";
+    print i;
+    brk;
+  case 3:
+    print "aaa";
+    # brk;
+}
+
+switch i {
+  case 1:
+    print "a"; 
+    brk;
+  def:
+    print "default";
+}
+
+var a = i * 2;
+print a;

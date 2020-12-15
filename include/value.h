@@ -22,6 +22,7 @@ typedef struct {
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_NUMBER(value) ((value).as.number)
 #define AS_OBJECT(value) ((value).as.object)
+#define AS_FUNCTION(value) ((FunctionObject *)AS_OBJECT(value))
 
 #define TO_BOOL(value) ((Value){_BOOLEAN, {.boolean = value}})
 #define TO_NUMBER(value) ((Value){_NUMBER, {.number = value}})
@@ -33,6 +34,7 @@ typedef struct {
 #define IS_NULL(value) ((value).type == _NULL)
 #define IS_OBJECT(value) ((value).type == _OBJECT)
 #define IS_STRING(value) isObjectType(value, STRING_OBJECT)
+#define IS_FUNCTION(value) isObjectType(value, FUNCTION_OBJECT)
 
 typedef struct {
   int capacity;

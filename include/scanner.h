@@ -15,57 +15,58 @@ typedef enum {
   TOKEN_DOT,          // 5
   TOKEN_MINUS,        // 6
   TOKEN_PLUS,         // 7
-  TOKEN_MODULO,       // 8
-  TOKEN_SEMI,         // 9
-  TOKEN_STAR,         // 10
-  TOKEN_TYPE_OF,      // 11
-  TOKEN_INSTANCE_OF,  // 12
-  TOKEN_NEW,          // 13
-  TOKEN_DELETE,       // 14
+  TOKEN_INCREMENT,    // 8
+  TOKEN_DECREMENT,    // 9
 
-  TOKEN_SLASH,          // 15
-  TOKEN_BANG,           // 16
-  TOKEN_BANG_EQUAL,     // 17
-  TOKEN_EQUAL,          // 18
-  TOKEN_EQUAL_EQUAL,    // 19
-  TOKEN_GREATER,        // 20
-  TOKEN_GREATER_EQUAL,  // 21
-  TOKEN_LESS,           // 22
-  TOKEN_LESS_EQUAL,     // 23
-  TOKEN_LOGICAL_AND,    // 24
-  TOKEN_LOGICAL_OR,     // 25
-  TOKEN_LOGICAL_NOT,    // 26
-  TOKEN_BITWISE_AND,    // 27
-  TOKEN_BITWISE_OR,     // 28
-  TOKEN_BITWISE_NOT,    // 29
-  TOKEN_BITWISE_XOR,    // 30
-  TOKEN_LEFT_SHIFT,     // 31
-  TOKEN_RIGHT_SHIFT,    // 32
+  TOKEN_MODULO,       // 10
+  TOKEN_SEMI,         // 11
+  TOKEN_STAR,         // 12
+  TOKEN_TYPE_OF,      // 13
+  TOKEN_INSTANCE_OF,  // 14
+  TOKEN_NEW,          // 15
+  TOKEN_DELETE,       // 16
 
-  TOKEN_IDENTIFIER,  // 33
-  TOKEN_STRING,      // 34
-  TOKEN_NUMBER,      // 35
-  TOKEN_CONST,       // 36
-  TOKEN_ENUM,        // 37
+  TOKEN_SLASH,          // 17
+  TOKEN_BANG,           // 18
+  TOKEN_BANG_EQUAL,     // 19
+  TOKEN_EQUAL,          // 20
+  TOKEN_EQUAL_EQUAL,    // 21
+  TOKEN_GREATER,        // 22
+  TOKEN_GREATER_EQUAL,  // 23
+  TOKEN_LESS,           // 24
+  TOKEN_LESS_EQUAL,     // 25
+  TOKEN_LOGICAL_AND,    // 26
+  TOKEN_LOGICAL_OR,     // 27
+  TOKEN_LOGICAL_NOT,    // 28
+  TOKEN_BITWISE_AND,    // 29
+  TOKEN_BITWISE_OR,     // 30
+  TOKEN_BITWISE_NOT,    // 31
+  TOKEN_BITWISE_XOR,    // 32
+  TOKEN_LEFT_SHIFT,     // 33
+  TOKEN_RIGHT_SHIFT,    // 34
 
-  TOKEN_IF,         // 38
-  TOKEN_ELIF,       // 39
-  TOKEN_ELSE,       // 40
-  TOKEN_SWITCH,     // 41
-  TOKEN_CASE,       // 42
-  TOKEN_DEFAULT,    // 43
-  TOKEN_TRY,        // 44
-  TOKEN_CATCH,      // 45
-  TOKEN_FINALYY,    // 46
-  TOKEN_EXP,        // 47
-  TOKEN_IMP,        // 48
-  TOKEN_TRUE,       // 49
-  TOKEN_FALSE,      // 50
-  TOKEN_FX,         // 51
-  TOKEN_DO,         // 52
-  TOKEN_WHILE,      // 53
-  TOKEN_FROM,       // 54
-  TOKEN_TO,         // 55
+  TOKEN_IDENTIFIER,  // 35
+  TOKEN_STRING,      // 36
+  TOKEN_NUMBER,      // 37
+  TOKEN_CONST,       // 38
+  TOKEN_ENUM,        // 39
+
+  TOKEN_IF,         // 40
+  TOKEN_ELSE,       // 41
+  TOKEN_SWITCH,     // 42
+  TOKEN_CASE,       // 43
+  TOKEN_DEFAULT,    // 44
+  TOKEN_TRY,        // 45
+  TOKEN_CATCH,      // 46
+  TOKEN_FINALYY,    // 47
+  TOKEN_EXP,        // 48
+  TOKEN_IMP,        // 49
+  TOKEN_TRUE,       // 50
+  TOKEN_FALSE,      // 51
+  TOKEN_FX,         // 52
+  TOKEN_DO,         // 53
+  TOKEN_WHILE,      // 54
+  TOKEN_FROM,       // 55
   TOKEN_RETURN,     // 56
   TOKEN_GOTO,       // 57
   TOKEN_THROW,      // 58
@@ -94,10 +95,11 @@ typedef enum {
   TOKEN_VAR,        // 81
   TOKEN_STATIC,     // 82
   TOKEN_UNSAFE,     // 83
-  TOKEN_PRINT,      // 84
+  TOKEN_LABEL,      // 84
+  TOKEN_PRINT,      // 85
 
-  TOKEN_EOF,  // 85
-  TOKEN_ERR   // 86
+  TOKEN_EOF,  // 86
+  TOKEN_ERR   // 87
 } TokenType;
 
 typedef struct {

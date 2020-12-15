@@ -28,12 +28,14 @@ Token scanToken(Scanner *scanner) {
       return makeToken(scanner, TOKEN_SEMI);
     case '.':
       return makeToken(scanner, TOKEN_DOT);
+    case ':':
+      return makeToken(scanner, TOKEN_LABEL);
     case '+':
-      return makeToken(scanner, TOKEN_PLUS);
+      return makeToken(scanner, match(scanner, '+') ? TOKEN_INCREMENT : TOKEN_PLUS);
     case '%':
       return makeToken(scanner, TOKEN_MODULO);
     case '-':
-      return makeToken(scanner, TOKEN_MINUS);
+      return makeToken(scanner, match(scanner, '-') ? TOKEN_DECREMENT : TOKEN_MINUS);
     case '*':
       return makeToken(scanner, TOKEN_STAR);
     case '/':
@@ -116,7 +118,7 @@ TokenType identifierType(Scanner *scanner) {
               case 'l':
                 return checkKeyword(scanner, 3, 3, "ete", TOKEN_DELETE);
               case 'f':
-                return checkKeyword(scanner, 3, 4, "ault", TOKEN_DEFAULT);
+                return TOKEN_DEFAULT;
             }
         }
       }
@@ -130,12 +132,7 @@ TokenType identifierType(Scanner *scanner) {
       if (scanner->current - scanner->start > 1) {
         switch (scanner->start[1]) {
           case 'l':
-            switch (scanner->start[2]) {
-              case 's':
-                return checkKeyword(scanner, 3, 1, "e", TOKEN_ELSE);
-              case 'i':
-                return checkKeyword(scanner, 3, 1, "f", TOKEN_ELIF);
-            }
+            return checkKeyword(scanner, 2, 2, "se", TOKEN_ELSE);
           case 'n':
             return checkKeyword(scanner, 2, 2, "um", TOKEN_ENUM);
         }
@@ -167,7 +164,11 @@ TokenType identifierType(Scanner *scanner) {
       if (scanner->current - scanner->start > 1) {
         switch (scanner->start[1]) {
           case 'f':
-            return checkKeyword(scanner, 2, 3, "ace", TOKEN_IFACE);
+            if (scanner->start[2] == 'a') {
+              return checkKeyword(scanner, 3, 2, "ce", TOKEN_IFACE);
+            } else {
+              return checkKeyword(scanner, 2, 0, "", TOKEN_IF);
+            }
           case 'm':
             if (scanner->start[2] == 'p') {
               if (scanner->start[3] == 'l') {
@@ -249,8 +250,6 @@ TokenType identifierType(Scanner *scanner) {
               }
             }
             break;
-          case 'o':
-            return TOKEN_TO;
           case 'r':
             switch (scanner->start[2]) {
               case 'y':
