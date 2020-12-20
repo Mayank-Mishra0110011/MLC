@@ -1,0 +1,9 @@
+if both cont and brk are in loop, it seg faults or pushes wrong values on stack causing a 
+runtime error depending on the order of cont, brk
+
+cont does not work in while
+
+if switch is inside loop, brk breaks from loop
+
+in switch if none of the cases match it should jump into the def case however, for now if
+no cases match AND a def case exists, the program seg faults.

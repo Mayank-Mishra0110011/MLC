@@ -3,17 +3,25 @@
 
 #include <math.h>
 #include <stdarg.h>
+#include <time.h>
 
-#include "chunk.h"
 #include "compiler.h"
 #include "debug.h"
 #include "hashtable.h"
 
-#define STACK_MAX 256
+#define FRAMES_MAX 256
+#define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
 typedef struct {
-  Chunk *chunk;
+  ClosureObject *closure;
   uint8_t *instrPtr;
+  Value *slots;
+} StackFrame;
+
+typedef struct {
+  UpvalueObject *openUpvalues;
+  StackFrame frames[FRAMES_MAX];
+  int frameCount;
   Value stack[STACK_MAX];
   Value switchVal[STACK_MAX];
   bool caseVal[STACK_MAX];
@@ -44,6 +52,12 @@ static Value vmStackPeek(VM *, int);
 static void runtimeError(VM *, const char *, ...);
 static bool isFalse(Value);
 static bool underflow(VM *);
+static bool callValue(VM *, Value, int);
+static bool vmCall(VM *, ClosureObject *, int);
 static void freeObject(Object *);
+static void closeUpvalues(VM *, Value *);
+static void defineNative(VM *, const char *, NativeFx);
+static UpvalueObject *captureUpvalue(VM *, Value *);
+static Value nativeClock(int, Value *);
 
 #endif

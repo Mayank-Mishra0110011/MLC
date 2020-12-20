@@ -9,7 +9,10 @@ Keywords
   iface (interface), mixin, unsafe, fx, null, Object, Exception, struct, union
 
 fx a(i32) => {
-  
+  # if the last line has a constant expression, the function returns that by default
+  # this would return the string below
+  # if there's no expression or return stmt we return null
+  "str literal"
 }
 
 fx (i32, string) => {

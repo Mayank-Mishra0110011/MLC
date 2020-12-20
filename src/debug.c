@@ -2,12 +2,12 @@
 
 void disassembleChunk(Chunk *chunk, const char *name) {
   printf("\nDisassembling chunk\n\n");
-  printf("=========================== %s ===========================\n", name);
+  printf("=========================== %s ===============================\n", name);
   printf("offset    line    opcode            constIndex    constValue\n");
   for (int offset = 0; offset < chunk->count;) {
     offset = disassembleInstruction(chunk, offset);
   }
-  printf("============================================================\n", name);
+  printf("==================================================================\n", name);
 }
 
 int disassembleInstruction(Chunk *chunk, int offset) {
@@ -19,6 +19,26 @@ int disassembleInstruction(Chunk *chunk, int offset) {
   }
   uint8_t instr = chunk->code[offset];
   switch (instr) {
+    case OP_CLOSE_UPVALUE:
+      return simpleInstruction("    OP_CLOSE_UPVALUE", offset);
+    case OP_SET_UPVALUE:
+      return byteInstruction("    OP_SET_UPVALUE      ", chunk, offset);
+    case OP_GET_UPVALUE:
+      return byteInstruction("    OP_GET_UPVALUE      ", chunk, offset);
+    case OP_CLOSURE: {
+      offset++;
+      uint8_t constant = chunk->code[offset++];
+      printf("    %-16s    %4d        ", "OP_CLOSURE", constant);
+      printVal(chunk->constants.values[constant]);
+      printf("\n");
+      FunctionObject *fx = AS_FUNCTION(chunk->constants.values[constant]);
+      for (int j = 0; j < fx->upvalueCount; j++) {
+        int isLocal = chunk->code[offset++];
+        int index = chunk->code[offset++];
+        printf("%04d        |     %s                %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
+      }
+      return offset;
+    }
     case OP_SWITCH_END:
       return simpleInstruction("    OP_SWITCH_END", offset);
     case OP_SWITCH_START:
@@ -65,6 +85,8 @@ int disassembleInstruction(Chunk *chunk, int offset) {
       return byteInstruction("    OP_GET_LOCAL        ", chunk, offset);
     case OP_SET_LOCAL:
       return byteInstruction("    OP_SET_LOCAL        ", chunk, offset);
+    case OP_CALL:
+      return byteInstruction("    OP_CALL             ", chunk, offset);
     case OP_EQUAL:
       return simpleInstruction("    OP_EQUAL", offset);
     case OP_LOOP:

@@ -1,50 +1,73 @@
-var i = 1;
+# fx fact(n) {
+#   if n == 0 return 1;
+#   return n * fact(n - 1);
+# }
 
-switch i {
-  case 0:
-    print i;
-  case 1:
-    var p = 3;
-    switch p {
-      case 0:
-        print "0";
-      case 1: 
-        print "1";
-      case 2:
-        print "2";
-      case 3:
-        print "3";
-      def:
-        print "in def";
-    }
-    from var j = i; j < 5; j++ {
-      print "looping";
-    }
-    print "end";
-  case 2:
-    print "something";
+# var now = clock();
+# print fact(5);
+# print clock() - now;
+
+# var f = 10;
+
+# should give type error
+# print f();
+
+# fx gx() {
+#   fx dx() {
+#     print "in gx";
+#   } 
+#   return dx;
+# }
+
+# var a = gx();
+# print a;
+# a();
+
+# fx outer() {
+#   var x = "outside";
+#   fx inner() {
+#     print x;
+#   }
+#   inner();
+# }
+
+# outer();
+
+# var g1;
+# var g2;
+
+# fx test() {
+#   var ta = "initial";
+#   fx set() {
+#     ta = "new";
+#   }
+#   fx get() {
+#     print ta;
+#   }
+#   g1 = set;
+#   g2 = get;
+# }
+
+# test();
+# g1();
+# g2();
+
+# var getter;
+# var setter;
+
+fx Point(x, y) {
+  var _x = x;
+  var _y = y;
+  fx get() {
+    print _x;
+    print _y;   
+  }
+  fx set(dx, dy) {
+    _x = _x + dx;
+    _y = _y + dy;
+  }
+  getter = get;
+  setter = set;
 }
 
-switch i {
-  case 1:
-  case 2:
-    print "aa"; 
-  def:
-    print "def";
-    print i;
-    brk;
-  case 3:
-    print "aaa";
-    # brk;
-}
-
-switch i {
-  case 1:
-    print "a"; 
-    brk;
-  def:
-    print "default";
-}
-
-var a = i * 2;
-print a;
+Point(0, 0);
