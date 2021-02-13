@@ -253,11 +253,12 @@ IR run(VM* vm) {
         }
         push(vm, TO_NUMBER(-AS_NUMBER(pop(vm))));
         break;
-      case OP_PRINT: {
+      case OP_PRINT:
         printVal(pop(vm));
+        break;
+      case OP_PRINT_LN:
         printf("\n");
         break;
-      }
       case OP_GET_UPVALUE: {
         uint8_t slot = READ_BYTE();
         push(vm, *frame->closure->upvalues[slot]->loc);
@@ -265,7 +266,6 @@ IR run(VM* vm) {
       }
       case OP_SET_UPVALUE: {
         uint8_t slot = READ_BYTE();
-        printf("SEG FAULT %d\n", *frame->closure->upvalues[slot]);
         *frame->closure->upvalues[slot]->loc = vmStackPeek(vm, 0);
         break;
       }

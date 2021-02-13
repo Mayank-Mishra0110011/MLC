@@ -1,73 +1,23 @@
-# fx fact(n) {
-#   if n == 0 return 1;
-#   return n * fact(n - 1);
-# }
+var out;
+var set;
 
-# var now = clock();
-# print fact(5);
-# print clock() - now;
-
-# var f = 10;
-
-# should give type error
-# print f();
-
-# fx gx() {
-#   fx dx() {
-#     print "in gx";
-#   } 
-#   return dx;
-# }
-
-# var a = gx();
-# print a;
-# a();
-
-# fx outer() {
-#   var x = "outside";
-#   fx inner() {
-#     print x;
-#   }
-#   inner();
-# }
-
-# outer();
-
-# var g1;
-# var g2;
-
-# fx test() {
-#   var ta = "initial";
-#   fx set() {
-#     ta = "new";
-#   }
-#   fx get() {
-#     print ta;
-#   }
-#   g1 = set;
-#   g2 = get;
-# }
-
-# test();
-# g1();
-# g2();
-
-# var getter;
-# var setter;
-
-fx Point(x, y) {
-  var _x = x;
-  var _y = y;
-  fx get() {
-    print _x;
-    print _y;   
+fx point() {
+  var x;
+  var y;
+  fx init(_x, _y) {
+    x = _x;
+    y = _y;
   }
-  fx set(dx, dy) {
-    _x = _x + dx;
-    _y = _y + dy;
+  fx log() {
+    print "x : ", x, " y : ", y;
   }
-  getter = get;
-  setter = set;
+  out = log;
+  set = init;
 }
 
-Point(0, 0);
+point();
+out();
+set(-5, 6);
+out();
+set(2, -3);
+out();

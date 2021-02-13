@@ -44,11 +44,12 @@ typedef enum {
   OP_LESS,           // 30
   OP_LESS_EQUAL,     // 31
   OP_PRINT,          // 32
-  OP_CALL,           // 33
-  OP_CLOSURE,        // 34
-  OP_GET_UPVALUE,    // 35
-  OP_SET_UPVALUE,    // 36
-  OP_CLOSE_UPVALUE,  // 37
+  OP_PRINT_LN,       // 33
+  OP_CALL,           // 34
+  OP_CLOSURE,        // 35
+  OP_GET_UPVALUE,    // 36
+  OP_SET_UPVALUE,    // 37
+  OP_CLOSE_UPVALUE,  // 38
 } OpCode;
 
 typedef enum {

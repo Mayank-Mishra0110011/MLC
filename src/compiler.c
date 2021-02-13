@@ -243,7 +243,7 @@ int resolveUpvalue(Parser *parser, Compiler *compiler, Token *name) {
     return addUpvalue(parser, compiler, (uint8_t)local, true);
   }
   int upvalue = resolveUpvalue(parser, (Compiler *)compiler->enclosing, name);
-  if (upvalue == -1) {
+  if (upvalue != -1) {
     return addUpvalue(parser, compiler, (uint8_t)upvalue, false);
   }
   return -1;
@@ -427,9 +427,12 @@ bool matchToken(Parser *parser, Scanner *scanner, TokenType type) {
 }
 
 void printStatement(Parser *parser, Scanner *scanner, HashTable *hash) {
-  expression(parser, scanner, hash);
+  do {
+    expression(parser, scanner, hash);
+    emitByte(OP_PRINT, parser);
+  } while (matchToken(parser, scanner, TOKEN_COMMA));
   consume(parser, scanner, TOKEN_SEMI, "Expected ';' after value");
-  emitByte(OP_PRINT, parser);
+  emitByte(OP_PRINT_LN, parser);
 }
 
 void expression(Parser *parser, Scanner *scanner, HashTable *hash) {
