@@ -1,26 +1,45 @@
-#include "repl.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-static void MLC_compile(VM *vm, const char *filePath);
+#include "chunk.h"
+#include "common.h"
+#include "debug.h"
+#include "vm.h"
+
+static void MLC_repl();
+static void MLC_compile(const char *filePath);
 static char *readFile(const char *filePath);
 
 int main(int argc, const char *argv[]) {
-  VM vm;
-  initVM(&vm);
+  initVM();
   if (argc == 1) {
-    initMLC_repl(&vm);
+    MLC_repl();
   } else if (argc == 2) {
-    MLC_compile(&vm, argv[1]);
+    MLC_compile(argv[1]);
   } else {
     fprintf(stderr, "Usage: MLC [path]\n");
     exit(64);
   }
-  deleteVM(&vm);
+  deleteVM();
   return 0;
 }
 
-void MLC_compile(VM *vm, const char *filePath) {
+void MLC_repl() {
+  char line[1024];
+  while (true) {
+    printf(">>> ");
+    if (!fgets(line, sizeof(line), stdin)) {
+      printf("\n");
+      break;
+    }
+    IR res = interpret(line);
+  }
+}
+
+void MLC_compile(const char *filePath) {
   char *source = readFile(filePath);
-  IR res = interpret(vm, source);
+  IR res = interpret(source);
   free(source);
   if (res == I_COMPILE_ERR) exit(65);
   if (res == I_RUNTIME_ERR) exit(70);

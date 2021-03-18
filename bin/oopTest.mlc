@@ -73,7 +73,7 @@ fx main(argv) {
     new Circle(22.2, 'circle'),
     new Rect(12.6, 5.0, 'rect');
   };
-  from (var i = 0; i < shapes.length; i++) {
+  from var i = 0 to shapes.length {
     switch(shapes[i].getType()) {
       case 'circle':
         //do something relevant

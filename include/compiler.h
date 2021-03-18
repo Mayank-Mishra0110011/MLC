@@ -2,132 +2,86 @@
 #define MLC_COMPILER_H
 
 #include "chunk.h"
-#include "hashtable.h"
+#include "common.h"
+#include "object.h"
 #include "scanner.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
 #endif
 
-typedef struct {
-  Token cur;
-  Token prev;
-  bool hadErr;
-  bool panic;
-} Parser;
-
-typedef enum {
-  PRE_NONE,
-  PRE_ASSIGN,
-  PRE_LOGICAL_OR,
-  PRE_LOGICAL_AND,
-  PRE_EQUALITY,
-  PRE_COMP,
-  PRE_TERM,
-  PRE_FACTOR,
-  PRE_UNARY,
-  PRE_CALL,
-  PRE_PRIMARY
-} Precedence;
-
-typedef void (*ParseFn)(Parser *, Scanner *, HashTable *, bool);
-
-typedef struct {
-  ParseFn prefix;
-  ParseFn infix;
-  Precedence prec;
-} ParseRule;
-
-typedef struct {
-  Token name;
-  int depth;
-  bool isCaptured;
-} Local;
-
-typedef struct {
-  uint8_t index;
-  bool isLocal;
-} Upvalue;
-
-typedef enum {
-  TYPE_FUNCTION,
-  TYPE_SCRIPT
-} FunctionType;
-
-typedef struct {
-  struct Compiler *enclosing;
-  Local locals[UINT8_COUNT];
-  Upvalue upvalues[UINT8_COUNT];
-  int labels[UINT8_MAX];
-  FunctionObject *function;
-  FunctionType type;
-  int localCount;
-  int labelCount;
-  int scopeDepth;
-} Compiler;
-
 static Compiler *current = NULL;
 
-FunctionObject *compile(const char *, HashTable *);
-static ParseRule *getRule(TokenType);
-static FunctionObject *endCompilation(Parser *);
-static Chunk *currentChunk();
-static uint8_t makeConst(Value);
-static uint8_t parseVariable(Parser *, Scanner *, HashTable *, const char *);
-static uint8_t indentifierConst(Token *, HashTable *);
-static uint8_t argList(Parser *, Scanner *, HashTable *);
-static int resolveLocal(Parser *, Compiler *, Token *);
-static int emitJump(uint8_t, Parser *);
-static int resolveUpvalue(Parser *, Compiler *, Token *);
-static int addUpvalue(Parser *, Compiler *, uint8_t, bool);
-static bool matchToken(Parser *, Scanner *, TokenType);
-static bool indentifierEqual(Token *, Token *);
-static bool check(Parser *, TokenType);
-static void expression(Parser *, Scanner *, HashTable *);
-static void statement(Parser *, Scanner *, HashTable *);
-static void expressionStatement(Parser *, Scanner *, HashTable *);
-static void parsePrecedence(Parser *, Scanner *, HashTable *, Precedence);
-static void grouping(Parser *, Scanner *, HashTable *, bool);
-static void call(Parser *, Scanner *, HashTable *, bool);
-static void string(Parser *, Scanner *, HashTable *, bool);
-static void literal(Parser *, Scanner *, HashTable *, bool);
-static void binary(Parser *, Scanner *, HashTable *, bool);
-static void unary(Parser *, Scanner *, HashTable *, bool);
-static void number(Parser *, Scanner *, HashTable *, bool);
-static void variable(Parser *, Scanner *, HashTable *, bool);
-static void namedVar(Parser *, Scanner *, HashTable *, bool);
-static void logicalAnd(Parser *, Scanner *, HashTable *, bool);
-static void logicalOr(Parser *, Scanner *, HashTable *, bool);
-static void emitConst(Parser *, Value);
-static void emitBytes(uint8_t, uint8_t, Parser *);
-static void emitByte(uint8_t, Parser *);
-static void consume(Parser *, Scanner *, TokenType, const char *);
-static void error(Parser *, const char *);
-static void errorAt(Parser *, const char *);
-static void errorAtCurrent(Parser *, const char *);
-static void advance(Parser *, Scanner *);
-static void emitReturn(Parser *);
-static void declaration(Parser *, Scanner *, HashTable *);
-static void printStatement(Parser *, Scanner *, HashTable *);
-static void synchronize(Parser *, Scanner *);
-static void varDeclaration(Parser *, Scanner *, HashTable *);
-static void defineVariable(Parser *, uint8_t);
-static void initCompiler(Compiler *, Parser *, HashTable *, FunctionType);
+FunctionObject *compile(const char *);
+
+static FunctionObject *endCompilation();
+
+void markCompilerRoots();
+
+static void initCompiler(Compiler *, FunctionType);
+static void synchronize();
+static void varDeclaration();
+static void defineVariable(uint8_t);
+static void variable(bool);
+static void namedVar(bool);
+static void block();
 static void beginScope();
-static void block(Parser *, Scanner *, HashTable *);
-static void endScope(Parser *);
-static void declareLocalVar(Parser *);
+static void declareLocalVar();
+static void endScope();
 static void markInitialized();
-static void ifStatement(Parser *, Scanner *, HashTable *);
-static void whileStatement(Parser *, Scanner *, HashTable *);
-static void returnStatement(Parser *, Scanner *, HashTable *);
-static void switchStatement(Parser *, Scanner *, HashTable *);
-static void evalCase(Parser *, Scanner *, HashTable *);
-static void fromStatement(Parser *, Scanner *, HashTable *);
-static void cont(Parser *, Scanner *, HashTable *, bool);
-static void emitLoop(int, Parser *);
-static void backpatchJump(Parser *, int);
-static void functionDeclaration(Parser *, Scanner *, HashTable *);
-static void function(Parser *, Scanner *, HashTable *, FunctionType);
+static void backpatchJump(int);
+static void ifStatement();
+static void logicalAnd(bool);
+static void logicalOr(bool);
+static void emitLoop(int);
+static void whileStatement();
+static void fromStatement();
+static void switchStatement();
+static void function(FunctionType);
+static void functionDeclaration();
+static void returnStatement();
+static void call(bool);
+static void incOrDec(bool);
+static void cont(bool);
+static void _brk(bool);
+static void expressionStatement();
+static void printStatement();
+static void statement();
+static void declaration();
+static void expression();
+static void emitReturn();
+static void advance();
+static void errorAtCurrent(const char *);
+static void errorAt(const char *);
+static void error(const char *);
+static void consume(TokenType, const char *);
+static void emitByte(uint8_t);
+static void emitBytes(uint8_t, uint8_t);
+static void number(bool);
+static void unary(bool);
+static void binary(bool);
+static void literal(bool);
+static void emitConst(Value);
+static void grouping(bool);
+static void parsePrecedence(Precedence);
+static void string(bool);
+
+static uint8_t argList();
+static uint8_t parseVariable(const char *);
+static uint8_t makeConst(Value);
+static uint8_t identifierConst(Token *);
+
+static int emitJump(uint8_t);
+static int addUpvalue(Compiler *, uint8_t, bool);
+static int resolveUpvalue(Compiler *);
+static int resolveLocal(Compiler *);
+
+static bool identifiersEqual(Token *, Token *);
+static bool matchToken(TokenType);
+static bool check(TokenType);
+
+static Chunk *currentChunk();
+
+static ParseRule *getRule(TokenType);
 
 #endif

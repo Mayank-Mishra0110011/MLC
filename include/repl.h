@@ -1,10 +1,6 @@
 #ifndef MLC_REPL_H
 #define MLC_REPL_H
 
-#include <signal.h>
-#include <termios.h>
-#include <unistd.h>
-
 #include "vm.h"
 
 #define cursorforward(x) printf("\033[%dC", (x))
@@ -21,8 +17,6 @@
 #define KEY_LEFT 0x0107
 #define KEY_RIGHT 0x0108
 
-static struct termios term, oterm;
-
 typedef struct {
   char *buffer;
   char *currentToken;
@@ -31,23 +25,31 @@ typedef struct {
   int capacity;
 } Line;
 
+FILE *fp;
+Line line = {NULL, NULL, 0, 0, 1024};
+char *tBuffer = NULL;
+
+static struct termios term, oterm;
+
 static int getch();
 static int kbhit();
 static int kbesc();
 static int kbget();
 
-void callback(int);
-static void MLC_repl(int, VM *);
-void initMLC_repl(VM *);
 static int getLineOffset();
+static int FPPeek();
+static int REPLmatchToken(char *, char *);
+
+void callback(int);
+void initMLC_repl();
+
+static void MLC_repl(int);
 static void FPSetLastLine();
 static void FPMovePrevLine();
 static void FPMoveNextLine();
-static int FPPeek();
 static void FPSetEnd();
 static void FPReadCurrentLine(char *, int);
 static void setColor(const char *);
-static int REPLmatchToken(char *, char *);
 static void printBack(int);
 static void clearLine();
 static void colorIfMatch(char *);

@@ -1,7 +1,7 @@
 Keywords
-  brk (break), const, cont (continue), else, enum, 
+  brk (break), const, cont (continue), else, elif, enum, 
   false, var, pub (public), priv (private), prot (protected), 
-  super, while, from (for loop), return, impl (implements), 
+  super, while, from - to (for loop), return, impl (implements), 
   static, self, true, typeOf, instanceOf, do, vr (virtual), 
   abs (abstract), yield, final, try, catch, 
   finally, throw, throws, ext (extends), class, switch, case, 
@@ -9,10 +9,7 @@ Keywords
   iface (interface), mixin, unsafe, fx, null, Object, Exception, struct, union
 
 fx a(i32) => {
-  # if the last line has a constant expression, the function returns that by default
-  # this would return the string below
-  # if there's no expression or return stmt we return null
-  "str literal"
+  
 }
 
 fx (i32, string) => {
@@ -44,7 +41,7 @@ class C ext A {
 
 ls = [new A(), new B(), new C()];
 
-from var i = 0; i < ls.len; i++ {
+from 0 to ls.len {
   ls[i].a();
 }
 

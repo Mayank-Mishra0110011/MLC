@@ -1,3 +1,23 @@
+# order of execution of these closures matter here
+# put the fact, sayHi functions below our psuedo object closure point, and you'll get a seg fault
+# somewhere gc is triggering and trying to access a raw pointer
+# figure it out and refactor
+# add more test cases to find other gc bugs
+
+fx fact(n) {
+  if n == 0 return 1;
+  return n * fact(n - 1);
+}
+
+var a = fact(5);
+print a;
+
+fx sayHi(name) {
+  print "hi " + name;
+}
+
+sayHi("alice");
+
 var out;
 var set;
 

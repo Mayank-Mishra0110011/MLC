@@ -107,17 +107,12 @@ int disassembleInstruction(Chunk *chunk, int offset) {
       return simpleInstruction("    OP_LESS_EQUAL", offset);
     case OP_PRINT:
       return simpleInstruction("    OP_PRINT", offset);
+    case OP_PRINT_LN:
+      return simpleInstruction("    OP_PRINT_LN", offset);
     default:
       printf("Unknown opcode %d\n", instr);
       return offset + 1;
   }
-}
-
-int jumpInstruction(const char *name, int sign, Chunk *chunk, int offset) {
-  uint16_t jmp = (uint16_t)(chunk->code[offset + 1] << 8);
-  jmp |= chunk->code[offset + 2];
-  printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jmp);
-  return offset + 3;
 }
 
 int simpleInstruction(const char *name, int offset) {
@@ -137,4 +132,11 @@ int byteInstruction(const char *name, Chunk *chunk, int offset) {
   uint8_t slot = chunk->code[offset + 1];
   printf("%-16s%4d\n", name, slot);
   return offset + 2;
+}
+
+int jumpInstruction(const char *name, int sign, Chunk *chunk, int offset) {
+  uint16_t jmp = (uint16_t)(chunk->code[offset + 1] << 8);
+  jmp |= chunk->code[offset + 2];
+  printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jmp);
+  return offset + 3;
 }

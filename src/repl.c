@@ -1,90 +1,5 @@
 #include "repl.h"
 
-FILE *fp;
-Line line = {NULL, NULL, 0, 0, 1024};
-char *tBuffer = NULL;
-
-int getLineOffset() {
-  int i = 0, c, lastPos = ftell(fp);
-  while ((c = fgetc(fp)) != EOF) {
-    i++;
-  }
-  fseek(fp, lastPos, SEEK_SET);
-  return i;
-}
-
-void FPSetLastLine() {
-  rewind(fp);
-  int i = 0, c, newLine = 0, lastNewLine = 0;
-  while ((c = fgetc(fp)) != EOF) {
-    if (c == '\n') {
-      newLine = i;
-    } else if (lastNewLine != newLine) {
-      lastNewLine = newLine;
-    }
-    i++;
-  }
-  fseek(fp, ++lastNewLine, SEEK_SET);
-}
-
-void FPMovePrevLine() {
-  int off = ftell(fp);
-  int i = 0, c, newLine = 0, lastNewLine = 0;
-  if (off == 0) return;
-  rewind(fp);
-  while (ftell(fp) != off) {
-    c = getc(fp);
-    if (c == '\n') {
-      newLine = i;
-    } else if (lastNewLine != newLine) {
-      lastNewLine = newLine;
-    }
-    i++;
-  }
-  if (lastNewLine != 0) ++lastNewLine;
-  fseek(fp, lastNewLine, SEEK_SET);
-}
-
-void FPMoveNextLine() {
-  if (getc(fp) == EOF) return;
-  int i = 0, c, newLine = 0, curPos = ftell(fp);
-  while ((c = getc(fp)) != EOF) {
-    i++;
-    if (c == '\n') {
-      newLine = curPos + i;
-      break;
-    }
-  }
-  if (newLine == 0) newLine = curPos;
-  fseek(fp, newLine, SEEK_SET);
-}
-
-int FPPeek() {
-  int off = ftell(fp);
-  int c = getc(fp);
-  fseek(fp, off, SEEK_SET);
-  return c;
-}
-
-void FPSetEnd() {
-  while (1)
-    if (getc(fp) == EOF) break;
-}
-
-void FPReadCurrentLine(char *buffer, int size) {
-  int off = ftell(fp);
-  fgets(buffer, size, fp);
-  fseek(fp, off, SEEK_SET);
-}
-
-void setColor(const char *scheme) {
-  fputs(scheme, stdout);
-}
-
-int REPLmatchToken(char *tkn, char *rest) {
-  return strcmp(tkn, rest);
-}
-
 int getch() {
   int c = 0;
   tcgetattr(0, &oterm);
@@ -146,6 +61,217 @@ int kbget() {
   int c;
   c = getch();
   return (c == KEY_ESCAPE) ? kbesc() : c;
+}
+
+int getLineOffset() {
+  int i = 0, c, lastPos = ftell(fp);
+  while ((c = fgetc(fp)) != EOF) {
+    i++;
+  }
+  fseek(fp, lastPos, SEEK_SET);
+  return i;
+}
+
+int FPPeek() {
+  int off = ftell(fp);
+  int c = getc(fp);
+  fseek(fp, off, SEEK_SET);
+  return c;
+}
+
+int REPLmatchToken(char *tkn, char *rest) {
+  return strcmp(tkn, rest);
+}
+
+void callback(int signum) {
+  if (fp) {
+    fclose(fp);
+  }
+  reallocate(line.buffer, line.capacity, 0);
+  free(tBuffer);
+  tcsetattr(0, TCSAFLUSH, &term);
+  tcsetattr(0, TCSAFLUSH, &oterm);
+  printf("\nBye!\n");
+  exit(0);
+}
+
+void initMLC_repl() {
+  char filePath[64];
+  char username[32];
+  char fileName[14];
+  signal(SIGINT, callback);
+  strcpy(username, getlogin());
+  strcpy(fileName, "/.mlc_history");
+  strcpy(filePath, "/home/");
+  strcat(filePath, username);
+  strcat(filePath, fileName);
+  fp = fopen(filePath, "a+");
+  if (!fp) {
+    printf("Unable to open .mlc_history file! Your home directory may not have read/write access.\n");
+    printf("Press Enter to open mlc repl without history support or any other key to exit\n");
+    if (kbget() == KEY_ENTER) {
+      MLC_repl(0);
+    }
+  } else {
+    MLC_repl(1);
+    fclose(fp);
+  }
+}
+
+void MLC_repl(int mode) {
+  int c, lo;
+  line.buffer = GROW_ARRAY(line.buffer, char, line.offset, line.capacity);
+  line.currentToken = line.buffer;
+  printf("\e[1;1H\e[2J");
+  if (mode == 1) FPSetEnd();
+  while (1) {
+    printf("mlc(main): >>> ");
+    do {
+      c = kbget();
+      if (c == KEY_ESCAPE) {
+        continue;
+      } else if (c == KEY_UP && mode == 1 && ftell(fp) != 0) {
+        FPMovePrevLine();
+        lo = getLineOffset();
+        tBuffer = (char *)realloc(tBuffer, sizeof(char) * lo);
+        FPReadCurrentLine(tBuffer, sizeof(char) * lo);
+        strcpy(line.buffer, tBuffer);
+        *(line.buffer + strlen(tBuffer) - 1) = '\0';
+        line.offset = strlen(tBuffer) - 1;
+        line.length = line.offset - 1;
+        clearLine();
+        printf("mlc(main): >>> ");
+        printf("%s", line.buffer);
+      } else if (c == KEY_DOWN && mode == 1 && FPPeek() != EOF) {
+        FPMoveNextLine();
+        if (FPPeek() == EOF) continue;
+        lo = getLineOffset();
+        tBuffer = (char *)realloc(tBuffer, sizeof(char) * lo);
+        FPReadCurrentLine(tBuffer, sizeof(char) * lo);
+        strcpy(line.buffer, tBuffer);
+        *(line.buffer + strlen(tBuffer) - 1) = '\0';
+        line.offset = strlen(tBuffer) - 1;
+        line.length = line.offset - 1;
+        clearLine();
+        printf("mlc(main): >>> ");
+        printf("%s", line.buffer);
+      } else if (c == KEY_RIGHT) {
+        cursorbackward(1);
+        line.offset--;
+      } else if (c == KEY_LEFT) {
+        cursorforward(1);
+        line.offset++;
+      } else if (c == KEY_SPACE) {
+        colorIfMatch(line.currentToken);
+        setColor("\x1b[0m");
+        printf(" ");
+        *(line.buffer + line.offset) = c;
+        line.offset++;
+        line.length++;
+        line.currentToken = line.buffer + line.offset;
+      } else if (c == KEY_BACKSPACE) {
+        if (*(line.buffer + line.offset) != '\0') {
+          printf("\b%s ", (line.buffer + line.offset));
+          printBack(line.length - line.offset + 1);
+          line.offset--;
+          strcpy(line.buffer + line.offset, line.buffer + line.offset + 1);
+          *(line.buffer + line.length) = '\0';
+          line.length--;
+          continue;
+        }
+        line.offset--;
+        line.length--;
+        *(line.buffer + line.offset) = '\0';
+        printf("\b%s ", (line.buffer + line.offset));
+        printBack(line.length - line.offset + 1);
+      } else if (c == KEY_ENTER) {
+        printf("\n");
+        break;
+      } else {
+        *(line.buffer + line.offset) = c;
+        line.offset++;
+        line.length++;
+        *(line.buffer + line.offset) = '\0';
+        putchar(c);
+      }
+    } while (c != KEY_ENTER);
+    IR res = interpret(line.buffer);
+    if (mode == 1) {
+      FPSetEnd();
+      *(line.buffer + line.offset) = '\n';
+      *(line.buffer + line.offset + 1) = '\0';
+      fputs(line.buffer, fp);
+      FPSetLastLine();
+    }
+    if (line.capacity != 1024) {
+      line.buffer = GROW_ARRAY(line.buffer, char, line.offset, 1024);
+    }
+    line.currentToken = line.buffer;
+    line.length = 0;
+    line.offset = 0;
+    line.length = 0;
+  }
+}
+
+void FPSetLastLine() {
+  rewind(fp);
+  int i = 0, c, newLine = 0, lastNewLine = 0;
+  while ((c = fgetc(fp)) != EOF) {
+    if (c == '\n') {
+      newLine = i;
+    } else if (lastNewLine != newLine) {
+      lastNewLine = newLine;
+    }
+    i++;
+  }
+  fseek(fp, ++lastNewLine, SEEK_SET);
+}
+
+void FPMovePrevLine() {
+  int off = ftell(fp);
+  int i = 0, c, newLine = 0, lastNewLine = 0;
+  if (off == 0) return;
+  rewind(fp);
+  while (ftell(fp) != off) {
+    c = getc(fp);
+    if (c == '\n') {
+      newLine = i;
+    } else if (lastNewLine != newLine) {
+      lastNewLine = newLine;
+    }
+    i++;
+  }
+  if (lastNewLine != 0) ++lastNewLine;
+  fseek(fp, lastNewLine, SEEK_SET);
+}
+
+void FPMoveNextLine() {
+  if (getc(fp) == EOF) return;
+  int i = 0, c, newLine = 0, curPos = ftell(fp);
+  while ((c = getc(fp)) != EOF) {
+    i++;
+    if (c == '\n') {
+      newLine = curPos + i;
+      break;
+    }
+  }
+  if (newLine == 0) newLine = curPos;
+  fseek(fp, newLine, SEEK_SET);
+}
+
+void FPSetEnd() {
+  while (1)
+    if (getc(fp) == EOF) break;
+}
+
+void FPReadCurrentLine(char *buffer, int size) {
+  int off = ftell(fp);
+  fgets(buffer, size, fp);
+  fseek(fp, off, SEEK_SET);
+}
+
+void setColor(const char *scheme) {
+  fputs(scheme, stdout);
 }
 
 void printBack(int times) {
@@ -358,135 +484,5 @@ void colorIfMatch(char *token) {
         printf("%s", token);
       }
       break;
-  }
-}
-
-void MLC_repl(int mode, VM *vm) {
-  int c, lo;
-  line.buffer = GROW_ARRAY(line.buffer, char, line.offset, line.capacity);
-  line.currentToken = line.buffer;
-  printf("\e[1;1H\e[2J");
-  if (mode == 1) FPSetEnd();
-  while (1) {
-    printf("mlc(main): >>> ");
-    do {
-      c = kbget();
-      if (c == KEY_ESCAPE) {
-        continue;
-      } else if (c == KEY_UP && mode == 1 && ftell(fp) != 0) {
-        FPMovePrevLine();
-        lo = getLineOffset();
-        tBuffer = (char *)realloc(tBuffer, sizeof(char) * lo);
-        FPReadCurrentLine(tBuffer, sizeof(char) * lo);
-        strcpy(line.buffer, tBuffer);
-        *(line.buffer + strlen(tBuffer) - 1) = '\0';
-        line.offset = strlen(tBuffer) - 1;
-        line.length = line.offset - 1;
-        clearLine();
-        printf("mlc(main): >>> ");
-        printf("%s", line.buffer);
-      } else if (c == KEY_DOWN && mode == 1 && FPPeek() != EOF) {
-        FPMoveNextLine();
-        if (FPPeek() == EOF) continue;
-        lo = getLineOffset();
-        tBuffer = (char *)realloc(tBuffer, sizeof(char) * lo);
-        FPReadCurrentLine(tBuffer, sizeof(char) * lo);
-        strcpy(line.buffer, tBuffer);
-        *(line.buffer + strlen(tBuffer) - 1) = '\0';
-        line.offset = strlen(tBuffer) - 1;
-        line.length = line.offset - 1;
-        clearLine();
-        printf("mlc(main): >>> ");
-        printf("%s", line.buffer);
-      } else if (c == KEY_RIGHT) {
-        cursorbackward(1);
-        line.offset--;
-      } else if (c == KEY_LEFT) {
-        cursorforward(1);
-        line.offset++;
-      } else if (c == KEY_SPACE) {
-        colorIfMatch(line.currentToken);
-        setColor("\x1b[0m");
-        printf(" ");
-        *(line.buffer + line.offset) = c;
-        line.offset++;
-        line.length++;
-        line.currentToken = line.buffer + line.offset;
-      } else if (c == KEY_BACKSPACE) {
-        if (*(line.buffer + line.offset) != '\0') {
-          printf("\b%s ", (line.buffer + line.offset));
-          printBack(line.length - line.offset + 1);
-          line.offset--;
-          strcpy(line.buffer + line.offset, line.buffer + line.offset + 1);
-          *(line.buffer + line.length) = '\0';
-          line.length--;
-          continue;
-        }
-        line.offset--;
-        line.length--;
-        *(line.buffer + line.offset) = '\0';
-        printf("\b%s ", (line.buffer + line.offset));
-        printBack(line.length - line.offset + 1);
-      } else if (c == KEY_ENTER) {
-        printf("\n");
-        break;
-      } else {
-        *(line.buffer + line.offset) = c;
-        line.offset++;
-        line.length++;
-        *(line.buffer + line.offset) = '\0';
-        putchar(c);
-      }
-    } while (c != KEY_ENTER);
-    IR res = interpret(vm, line.buffer);
-    if (mode == 1) {
-      FPSetEnd();
-      *(line.buffer + line.offset) = '\n';
-      *(line.buffer + line.offset + 1) = '\0';
-      fputs(line.buffer, fp);
-      FPSetLastLine();
-    }
-    if (line.capacity != 1024) {
-      line.buffer = GROW_ARRAY(line.buffer, char, line.offset, 1024);
-    }
-    line.currentToken = line.buffer;
-    line.length = 0;
-    line.offset = 0;
-    line.length = 0;
-  }
-}
-
-void callback(int signum) {
-  if (fp) {
-    fclose(fp);
-  }
-  reallocate(line.buffer, line.capacity, 0);
-  free(tBuffer);
-  tcsetattr(0, TCSAFLUSH, &term);
-  tcsetattr(0, TCSAFLUSH, &oterm);
-  printf("\nBye!\n");
-  exit(0);
-}
-
-void initMLC_repl(VM *vm) {
-  char filePath[64];
-  char username[32];
-  char fileName[14];
-  signal(SIGINT, callback);
-  strcpy(username, getlogin());
-  strcpy(fileName, "/.mlc_history");
-  strcpy(filePath, "/home/");
-  strcat(filePath, username);
-  strcat(filePath, fileName);
-  fp = fopen(filePath, "a+");
-  if (!fp) {
-    printf("Unable to open .mlc_history file! Your home directory may not have read/write access.\n");
-    printf("Press Enter to open mlc repl without history support or any other key to exit\n");
-    if (kbget() == KEY_ENTER) {
-      MLC_repl(0, vm);
-    }
-  } else {
-    MLC_repl(1, vm);
-    fclose(fp);
   }
 }
