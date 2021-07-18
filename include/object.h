@@ -17,6 +17,7 @@
 #define AS_OBJECT(value) ((value).as.object)
 #define AS_STRING(value) ((StringObject *)AS_OBJECT(value))
 #define AS_CSTRING(value) (((StringObject *)AS_OBJECT(value))->str)
+#define AS_CLASS(value) (((ClassObject *)AS_OBJECT(value)))
 
 #define TO_BOOL(value) ((Value){_BOOLEAN, {.boolean = value}})
 #define TO_NUMBER(value) ((Value){_NUMBER, {.number = value}})
@@ -30,6 +31,8 @@
 #define IS_FUNCTION(value) isObjectType(value, FUNCTION_OBJECT)
 #define IS_OBJECT(value) ((value).type == _OBJECT)
 #define IS_STRING(value) isObjectType(value, STRING_OBJECT)
+#define IS_STRING(value) isObjectType(value, STRING_OBJECT)
+#define IS_CLASS(value) isObjectType(value, CLASS_OBJECT)
 #define IS_NULL(value) ((value).type == _NULL)
 
 #define ALLOCATE_OBJECT(type, objectType) (type *)allocateObject(sizeof(type), objectType)
@@ -44,6 +47,7 @@ StringObject *getString(char *, int);
 static StringObject *allocateString(char *, int, uint32_t);
 
 FunctionObject *newFunction();
+ClassObject *newClass(StringObject *);
 
 NativeObject *newNative(NativeFx);
 

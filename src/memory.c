@@ -58,6 +58,10 @@ void freeObject(Object *obj) {
   printf("      %p free ObjectType %d\n", (void *)obj, obj->type);
 #endif
   switch (obj->type) {
+    case CLASS_OBJECT: {
+      FREE(ClassObject, obj);
+      break;
+    }
     case UPVALUE_OBJECT: {
       FREE(UpvalueObject, obj);
       break;
@@ -133,6 +137,11 @@ void blackenObject(Object *obj) {
   printf("\n");
 #endif
   switch (obj->type) {
+    case CLASS_OBJECT: {
+      ClassObject *__class__ = (ClassObject *)obj;
+      markObject((Object *)__class__->name);
+      break;
+    }
     case UPVALUE_OBJECT:
       markValue(((UpvalueObject *)obj)->closed);
       break;

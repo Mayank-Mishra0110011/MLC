@@ -2,6 +2,9 @@
 
 void printObject(Value val) {
   switch (OBJECT_TYPE(val)) {
+    case CLASS_OBJECT:
+      printf("%s", AS_CLASS(val)->name->str);
+      break;
     case UPVALUE_OBJECT:
       printf("upvalue");
       break;
@@ -57,6 +60,12 @@ StringObject *allocateString(char *str, int length, uint32_t hash) {
   hashTableInsertValue(&vm.strings, stringObject, TO_NULL);
   pop();
   return stringObject;
+}
+
+ClassObject *newClass(StringObject *name) {
+  ClassObject *__class__ = ALLOCATE_OBJECT(ClassObject, CLASS_OBJECT);
+  __class__->name = name;
+  return __class__;
 }
 
 FunctionObject *newFunction() {

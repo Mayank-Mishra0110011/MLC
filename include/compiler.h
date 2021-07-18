@@ -39,6 +39,7 @@ static void fromStatement();
 static void switchStatement();
 static void function(FunctionType);
 static void functionDeclaration();
+static void classDeclaration();
 static void returnStatement();
 static void call(bool);
 static void incOrDec(bool);

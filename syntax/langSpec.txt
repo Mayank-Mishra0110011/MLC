@@ -8,6 +8,42 @@ Keywords
   new, delete, default, goto, exp (export), imp (import), 
   iface (interface), mixin, unsafe, fx, null, Object, Exception, struct, union
 
+primitives {
+  i8
+  i16
+  i32
+  i64
+  u8
+  u16
+  u32
+  u64
+  iptr
+  uptr
+  imax
+  umax
+  f32
+  f64
+  char
+  bool
+  null
+}
+
+objects {
+  struct,
+  string,
+  class,
+  function,
+  enum,
+  tuple,
+  array,
+  list,
+  stack,
+  queue,
+  vector,
+  set,
+  hash,
+}
+
 fx a(i32) => {
   
 }

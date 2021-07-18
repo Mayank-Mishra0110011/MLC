@@ -328,8 +328,18 @@ void function(FunctionType t) {
   }
 }
 
+void classDeclaration() {
+  consume(TOKEN_IDENTIFIER, "class name expected");
+  uint8_t className = identifierConst(&parser.prev);
+  declareLocalVar();
+  emitBytes(OP_CLASS, className);
+  defineVariable(className);
+  consume(TOKEN_LEFT_BRACE, "Expected '{' before class body");
+  consume(TOKEN_RIGHT_BRACE, "Expected '}' after class body");
+}
+
 void functionDeclaration() {
-  uint8_t global = parseVariable("Expected fx name");
+  uint8_t global = parseVariable("fx name expected");
   markInitialized();
   function(TYPE_FUNCTION);
   defineVariable(global);
@@ -415,7 +425,9 @@ void statement() {
 }
 
 void declaration() {
-  if (matchToken(TOKEN_FX)) {
+  if (matchToken(TOKEN_CLASS)) {
+    classDeclaration();
+  } else if (matchToken(TOKEN_FX)) {
     functionDeclaration();
   } else if (matchToken(TOKEN_VAR)) {
     varDeclaration();

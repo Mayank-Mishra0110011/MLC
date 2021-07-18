@@ -19,6 +19,24 @@
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 #define UINT8_COUNT (UINT8_MAX + 1)
 
+typedef signed char i8;
+typedef short i16;
+typedef long i32;
+typedef long long i64;
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned long u32;
+typedef unsigned long long u64;
+typedef long iptr;
+typedef unsigned long uptr;
+typedef long long imax;
+typedef unsigned long long umax;
+typedef float f32;
+typedef double f64;
+typedef char _char;
+typedef bool _bool;
+typedef void _null;
+
 typedef enum {
   TOKEN_LEFT_PAREN,     // 0
   TOKEN_RIGHT_PAREN,    // 1
@@ -163,6 +181,7 @@ typedef enum {
   OP_GET_UPVALUE,    // 36
   OP_SET_UPVALUE,    // 37
   OP_CLOSE_UPVALUE,  // 38
+  OP_CLASS,          // 39
 } OpCode;
 
 typedef enum {
@@ -191,7 +210,8 @@ typedef enum {
   CLOSURE_OBJECT,
   NATIVE_OBJECT,
   STRING_OBJECT,
-  FUNCTION_OBJECT
+  FUNCTION_OBJECT,
+  CLASS_OBJECT
 } ObjectType;
 
 typedef struct Object Object;
@@ -352,6 +372,11 @@ struct Compiler {
   int labelCount;
   int scopeDepth;
 };
+
+typedef struct {
+  Object obj;
+  StringObject* name;
+} ClassObject;
 
 extern Scanner scanner;
 extern Parser parser;
